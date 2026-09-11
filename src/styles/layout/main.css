@@ -1,13 +1,207 @@
-#app-main {
-  flex: 1 0 auto; /* Kakainin ang bakanteng espasyo para maibaba ang footer */
-  max-width: var(--max-width, 1200px);
-  width: 100%;
-  margin: 0 auto;
-  padding: 3rem 1.5rem;
+/**
+ * WMA Wood Craft — Main content layout
+ */
+
+.site-main {
+  flex: 1;
 }
 
-#catalog-section {
+.wrap {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--content-padding);
+}
+
+.section {
+  padding-block: var(--space-8);
+}
+
+.section--tight {
+  padding-block: var(--space-6);
+}
+
+/* A seam motif standing in for a wood joint between sections —
+   used once between hero and catalog, not repeated everywhere. */
+.grain-seam {
+  position: relative;
+  height: 1px;
+  margin-inline: auto;
+  max-width: var(--content-max);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-border-strong) 15%,
+    var(--color-border-strong) 85%,
+    transparent
+  );
+}
+
+.grain-seam::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-amber);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 5px var(--color-cream), 0 0 0 6px var(--color-border-strong);
+}
+
+/* ---------- Hero ---------- */
+.hero {
+  padding-block: var(--space-9) var(--space-8);
+  overflow: hidden;
+}
+
+.hero__grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.hero__eyebrow {
+  display: inline-block;
+  font-size: var(--fs-200);
+  color: var(--color-oak);
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.hero__title {
+  font-size: var(--fs-800);
+  color: var(--color-walnut);
+  max-width: 14ch;
+  margin-bottom: var(--space-5);
+}
+
+.hero__lead {
+  font-size: var(--fs-400);
+  color: var(--color-oak);
+  max-width: 46ch;
+  line-height: var(--lh-snug);
+  margin-bottom: var(--space-6);
+}
+
+.hero__actions {
   display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-7);
+}
+
+.hero__stats {
+  display: flex;
+  gap: var(--space-7);
+}
+
+.hero__stat-value {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--fs-600);
+  color: var(--color-walnut);
+}
+
+.hero__stat-label {
+  font-size: var(--fs-100);
+  color: var(--color-oak);
+}
+
+/* The wood-swatch panel: a stack of layered "boards" implying material,
+   entering once on load rather than on every scroll. */
+.hero__swatch {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius-lg);
+  background:
+    repeating-linear-gradient(
+      100deg,
+      var(--color-pine) 0px,
+      var(--color-oak) 18px,
+      var(--color-pine) 34px,
+      var(--color-amber) 46px,
+      var(--color-oak) 64px
+    );
+  box-shadow: var(--shadow-lg);
+  animation: swatch-settle var(--duration-slow) var(--ease-out-soft) both;
+}
+
+.hero__swatch::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    200deg,
+    transparent 40%,
+    var(--color-overlay-walnut) 130%
+  );
+}
+
+.hero__swatch-tag {
+  position: absolute;
+  left: var(--space-5);
+  bottom: var(--space-5);
+  background: var(--color-cream);
+  color: var(--color-walnut);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-100);
+  box-shadow: var(--shadow-md);
+}
+
+@keyframes swatch-settle {
+  from {
+    opacity: 0;
+    transform: translateY(14px) rotate(1.5deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__swatch {
+    animation: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .hero__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero__swatch {
+    order: -1;
+    aspect-ratio: 16 / 10;
+  }
+
+  .hero__title {
+    max-width: none;
+    font-size: var(--fs-700);
+  }
+}
+
+/* ---------- Section headings shared across main content ---------- */
+.section__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.section__title {
+  font-size: var(--fs-600);
+  color: var(--color-walnut);
+}
+
+.section__subtitle {
+  font-size: var(--fs-300);
+  color: var(--color-oak);
+  max-width: 52ch;
 }

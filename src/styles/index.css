@@ -1,12 +1,20 @@
-@import './base/variables.css';
-@import './base/reset.css';
+/**
+ * WMA Wood Craft — Stylesheet entry point
+ * Import order: tokens → reset → layout → components.
+ */
 
+/* Base Styles */
+@import "./base/variables.css";
+@import "./base/reset.css";
 
-@import './layout/header.css';
-@import './layout/footer.css';
-@import './layout/main.css';
+/* Layout Styles */
+@import "./layout/header.css";
+@import "./layout/main.css";
+@import "./layout/footer.css";
 
-
-@import './components/button.css';
-@import './components/catalog.css';
-@import './components/chat.css';
+/* Component Styles */
+@import "./components/button.css";
+@import "./components/form.css";
+@import "./components/modal.css";
+@import "./components/catalog.css";
+@import "./components/chat.css";

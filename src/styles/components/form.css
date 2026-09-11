@@ -1,0 +1,67 @@
+/**
+ * WMA Wood Craft — Form primitives
+ */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.field__label {
+  font-size: var(--fs-100);
+  font-weight: 600;
+  color: var(--color-oak);
+}
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-white);
+  color: var(--color-ink);
+  font-size: var(--fs-300);
+  transition: border-color var(--duration-base) var(--ease-standard), box-shadow var(--duration-base) var(--ease-standard);
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--color-pine);
+}
+
+.input:hover,
+.textarea:hover,
+.select:hover {
+  border-color: var(--color-pine);
+}
+
+.input:focus-visible,
+.textarea:focus-visible,
+.select:focus-visible {
+  outline: none;
+  border-color: var(--color-oak);
+  box-shadow: 0 0 0 3px rgba(160, 120, 85, 0.22);
+}
+
+.field__hint {
+  font-size: var(--fs-100);
+  color: var(--color-pine);
+}
+
+.field--invalid .input,
+.field--invalid .textarea {
+  border-color: #b3543f;
+}
+
+.field__error {
+  font-size: var(--fs-100);
+  color: #b3543f;
+}

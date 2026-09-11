@@ -1,0 +1,89 @@
+/**
+ * WMA Wood Craft — Modal primitive
+ * Structural + visual only; open/close state is driven by a class
+ * toggle (`.modal--open`) applied by whatever calls it.
+ */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-base) var(--ease-standard), visibility 0s linear var(--duration-base);
+}
+
+.modal--open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--duration-base) var(--ease-standard), visibility 0s;
+}
+
+.modal__overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--color-overlay-walnut);
+  backdrop-filter: blur(2px);
+}
+
+.modal__panel {
+  position: relative;
+  width: min(520px, 100%);
+  max-height: min(640px, 90vh);
+  overflow-y: auto;
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+
+  transform: translateY(12px) scale(0.98);
+  transition: transform var(--duration-base) var(--ease-out-soft);
+}
+
+.modal--open .modal__panel {
+  transform: translateY(0) scale(1);
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal__title {
+  font-size: var(--fs-500);
+  color: var(--color-walnut);
+}
+
+.modal__close {
+  font-size: var(--fs-500);
+  line-height: 1;
+  color: var(--color-oak);
+}
+
+.modal__body {
+  padding: var(--space-5);
+  color: var(--color-ink);
+  font-size: var(--fs-300);
+  line-height: var(--lh-body);
+}
+
+.modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal,
+  .modal__panel {
+    transition: none;
+  }
+}
