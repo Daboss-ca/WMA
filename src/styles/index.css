@@ -1,0 +1,12 @@
+@import './base/variables.css';
+@import './base/reset.css';
+
+
+@import './layout/header.css';
+@import './layout/footer.css';
+@import './layout/main.css';
+
+
+@import './components/button.css';
+@import './components/catalog.css';
+@import './components/chat.css';

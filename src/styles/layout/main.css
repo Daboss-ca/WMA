@@ -1,0 +1,13 @@
+#app-main {
+  flex: 1 0 auto; /* Kakainin ang bakanteng espasyo para maibaba ang footer */
+  max-width: var(--max-width, 1200px);
+  width: 100%;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+#catalog-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}

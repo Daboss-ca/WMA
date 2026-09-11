@@ -1,0 +1,12 @@
+:root {
+  --primary-color: #5c3a21;
+  --secondary-color: #a07855;
+  --accent-color: #d4a373;
+  --bg-color: #fefae0;
+  --text-color: #2b1e16;
+  --white: #ffffff;
+
+  --max-width: 1200px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+}
