@@ -5,6 +5,9 @@ import { createFooter } from "./layout/Footer";
 import { createCatalog } from "./layout/Catalog";
 import type { FurnitureItem } from "./types/furniture";
 
+// Import image asset dynamically for Vite
+import catalogImg1 from "./assets/catalogs/catalog1.png";
+
 // Initialize Theme on startup
 initTheme();
 
@@ -15,6 +18,8 @@ const demoItems: FurnitureItem[] = [
     category: "Tables",
     description: "Live-edge walnut top on a hand-joined oak trestle base.",
     dimensions: { width: 72, height: 30, depth: 38, unit: "in" },
+    imageUrl: catalogImg1,
+    imageAlt: "Amber Grain Dining Table hand-crafted solid wood finish",
     isCustomizable: true,
     inStock: true,
   },
@@ -24,6 +29,8 @@ const demoItems: FurnitureItem[] = [
     category: "Cabinets",
     description: "Three-door cabinet with dovetailed drawers and brass pulls.",
     dimensions: { width: 64, height: 34, depth: 20, unit: "in" },
+    imageUrl: catalogImg1,
+    imageAlt: "Heritage Sideboard cabinet",
     isCustomizable: true,
     inStock: false,
   },
@@ -33,6 +40,8 @@ const demoItems: FurnitureItem[] = [
     category: "Kiosks",
     description: "Modular pine kiosk built for weekend markets and pop-ups.",
     dimensions: { width: 48, height: 78, depth: 30, unit: "in" },
+    imageUrl: catalogImg1,
+    imageAlt: "Market Display Kiosk",
     inStock: true,
   },
   {
@@ -41,6 +50,8 @@ const demoItems: FurnitureItem[] = [
     category: "Custom",
     description: "Floor-to-ceiling shelving, finished to match your millwork.",
     dimensions: { width: 96, height: 108, depth: 14, unit: "in" },
+    imageUrl: catalogImg1,
+    imageAlt: "Custom Built-In Shelving",
     isCustomizable: true,
   },
 ];
