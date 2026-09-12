@@ -1,7 +1,5 @@
 /**
  * WMA Wood Craft — Chat widget shell
- * Structural/visual styling only. Open/close state and message
- * handling belong to future business logic, not this stylesheet.
  */
 
 .chat-fab {
@@ -15,8 +13,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, var(--color-amber), var(--color-pine));
-  color: var(--color-walnut);
+  background: var(--accent-primary);
+  color: #1a130d;
   box-shadow: var(--shadow-amber-glow);
   transition: transform var(--duration-fast) var(--ease-standard), box-shadow var(--duration-base);
 }
@@ -36,7 +34,7 @@
   max-height: 480px;
   display: flex;
   flex-direction: column;
-  background: var(--color-white);
+  background: var(--bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
@@ -56,16 +54,13 @@
   transform: scale(1) translateY(0);
   opacity: 1;
   visibility: visible;
-  transition:
-    transform var(--duration-base) var(--ease-out-soft),
-    opacity var(--duration-base) var(--ease-standard),
-    visibility 0s;
+  transition: transform var(--duration-base) var(--ease-out-soft), opacity var(--duration-base) var(--ease-standard), visibility 0s;
 }
 
 .chat-panel__header {
   padding: var(--space-4) var(--space-5);
-  background: var(--color-walnut);
-  color: var(--color-cream);
+  background: var(--text-main);
+  color: var(--bg-surface);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -77,7 +72,7 @@
 }
 
 .chat-panel__close {
-  color: var(--color-amber-soft);
+  color: var(--bg-surface);
   font-size: var(--fs-400);
   line-height: 1;
 }
@@ -101,15 +96,15 @@
 
 .chat-bubble--in {
   align-self: flex-start;
-  background: var(--color-cream-dim);
-  color: var(--color-ink);
+  background: var(--bg-page-dim);
+  color: var(--text-main);
   border-bottom-left-radius: var(--radius-sm);
 }
 
 .chat-bubble--out {
   align-self: flex-end;
-  background: var(--color-oak);
-  color: var(--color-cream);
+  background: var(--text-main);
+  color: var(--bg-page);
   border-bottom-right-radius: var(--radius-sm);
 }
 
@@ -126,11 +121,12 @@
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-border-strong);
-  background: var(--color-cream-dim);
+  background: var(--bg-page-dim);
+  color: var(--text-main);
   font-size: var(--fs-200);
 }
 
 .chat-panel__input:focus-visible {
-  outline: 2px solid var(--color-oak);
+  outline: 2px solid var(--text-muted);
   outline-offset: 1px;
 }

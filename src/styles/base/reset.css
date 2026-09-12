@@ -1,7 +1,5 @@
 /**
- * WMA Wood Craft — Reset
- * A minimal, modern reset. Opinionated defaults only where they
- * remove friction; everything else is left to the design system.
+ * WMA Wood Craft — Reset & Base Styles
  */
 
 *,
@@ -30,10 +28,12 @@ body {
   font-family: var(--font-body);
   font-size: var(--fs-300);
   line-height: var(--lh-body);
-  color: var(--color-ink);
-  background-color: var(--color-cream);
+  color: var(--text-main);
+  background-color: var(--bg-page);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  transition: background-color var(--duration-base) var(--ease-standard),
+              color var(--duration-base) var(--ease-standard);
 }
 
 img,
@@ -78,15 +78,15 @@ h4 {
   line-height: var(--lh-tight);
   font-weight: 600;
   letter-spacing: var(--tracking-tight);
+  color: var(--text-main);
 }
 
 p {
   max-width: 65ch;
 }
 
-/* Consistent, visible focus ring everywhere — never suppressed */
 :focus-visible {
-  outline: 2px solid var(--color-oak);
+  outline: 2px solid var(--accent-primary);
   outline-offset: 3px;
   border-radius: var(--radius-sm);
 }

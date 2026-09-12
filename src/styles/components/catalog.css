@@ -1,6 +1,5 @@
 /**
  * WMA Wood Craft — Catalog components
- * Filter badges, furniture cards, and their supporting tags.
  */
 
 /* ---------- Filter tabs ---------- */
@@ -16,8 +15,8 @@
   padding: var(--space-2) var(--space-5);
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-border-strong);
-  background: var(--color-white);
-  color: var(--color-oak);
+  background: var(--bg-surface);
+  color: var(--text-muted);
   font-size: var(--fs-200);
   font-weight: 600;
   transition:
@@ -28,7 +27,8 @@
 }
 
 .filter-badge:hover {
-  border-color: var(--color-oak);
+  border-color: var(--text-main);
+  color: var(--text-main);
   transform: translateY(-1px);
 }
 
@@ -37,9 +37,9 @@
 }
 
 .filter-badge[aria-pressed="true"] {
-  background: var(--color-walnut);
-  border-color: var(--color-walnut);
-  color: var(--color-cream);
+  background: var(--text-main);
+  border-color: var(--text-main);
+  color: var(--bg-page);
 }
 
 /* ---------- Card grid ---------- */
@@ -55,7 +55,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  background: var(--color-white);
+  background: var(--bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   clip-path: polygon(
@@ -80,18 +80,11 @@
 }
 
 @keyframes card-enter {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
+  .card { animation: none; opacity: 1; transform: none; }
 }
 
 .card:hover,
@@ -105,7 +98,7 @@
   position: relative;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--color-amber-soft), var(--color-pine));
+  background: linear-gradient(135deg, var(--accent-soft), var(--color-pine));
 }
 
 .card__media img {
@@ -126,7 +119,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-walnut);
+  color: var(--text-main);
   font-family: var(--font-display);
   font-size: var(--fs-300);
   opacity: 0.55;
@@ -138,11 +131,11 @@
   left: var(--space-3);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-pill);
-  background: var(--color-glass-bg);
+  background: var(--bg-header);
   backdrop-filter: blur(6px);
   font-size: var(--fs-100);
   font-weight: 600;
-  color: var(--color-walnut);
+  color: var(--text-main);
 }
 
 .card__body {
@@ -155,12 +148,12 @@
 
 .card__title {
   font-size: var(--fs-500);
-  color: var(--color-walnut);
+  color: var(--text-main);
 }
 
 .card__description {
   font-size: var(--fs-200);
-  color: var(--color-oak);
+  color: var(--text-muted);
   line-height: var(--lh-snug);
 }
 
@@ -183,7 +176,7 @@
   flex: 1;
 }
 
-/* ---------- Badges (dimension, status) ---------- */
+/* ---------- Badges ---------- */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -194,8 +187,8 @@
   font-weight: 600;
   line-height: 1.4;
   border: 1px solid var(--color-border);
-  background: var(--color-cream-dim);
-  color: var(--color-oak);
+  background: var(--bg-page-dim);
+  color: var(--text-muted);
 }
 
 .badge--dimension {
@@ -203,9 +196,9 @@
 }
 
 .badge--customizable {
-  background: rgba(212, 163, 115, 0.18);
-  border-color: rgba(212, 163, 115, 0.4);
-  color: var(--color-oak);
+  background: var(--accent-soft);
+  border-color: var(--color-border-strong);
+  color: var(--text-main);
 }
 
 .badge--in-stock {
@@ -226,7 +219,7 @@
 .catalog-empty {
   padding: var(--space-8) var(--space-5);
   text-align: center;
-  color: var(--color-oak);
+  color: var(--text-muted);
   border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-lg);
 }

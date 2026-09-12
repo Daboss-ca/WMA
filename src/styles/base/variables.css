@@ -1,35 +1,42 @@
 /**
- * WMA Wood Craft — Design Tokens
+ * WMA Wood Craft — Design Tokens & Dynamic Theme System
  * ------------------------------------------------------
- * A warm, workshop-inspired palette pulled straight from the
- * material itself: cut walnut, oiled oak, varnish amber and
- * raw pine, set against an unbleached cream ground.
- *
- * These are the only values components should reach for —
- * no component file should hardcode a hex, a px gap, or a
- * timing curve directly.
+ * Default: Warm, unbleached cream Light Mode.
+ * Override: Rich Walnut & Dark Timber Dark Mode via [data-theme="dark"].
  */
 
 :root {
-  /* ---------- Color: timber palette ---------- */
+  /* ---------- Color: Timber Palette Primaries ---------- */
   --color-walnut: #2b1e16;       /* deepest brown — primary text, dark surfaces */
   --color-oak: #5c3a21;          /* warm oak — secondary surfaces, headings on cream */
   --color-amber: #d4a373;        /* varnish amber/gold — primary accent, CTAs */
   --color-pine: #a07855;         /* light pine — mid-tone accents, borders */
   --color-cream: #fefae0;        /* unbleached cream — page background */
-
-  /* ---------- Color: derived & functional ---------- */
   --color-cream-dim: #f7f0d4;     /* slightly deeper cream for section banding */
   --color-ink: #231910;           /* near-black warm ink, body copy on cream */
   --color-white: #fffdf6;         /* warm white, for card surfaces */
-  --color-amber-soft: #e8c9a3;    /* tint of amber for badges/hovers */
+
+  /* ---------- Default Theme Mapping: Light Mode ---------- */
+  --bg-page: var(--color-cream);
+  --bg-page-dim: var(--color-cream-dim);
+  --bg-surface: var(--color-white);
+  --bg-header: rgba(254, 250, 224, 0.85);
+  
+  --text-main: var(--color-ink);
+  --text-muted: var(--color-oak);
+  --text-inverse: var(--color-cream);
+
+  --accent-primary: var(--color-amber);
+  --accent-primary-hover: #c49262;
+  --accent-soft: #e8c9a3;
+
   --color-success: #5b7a52;       /* muted moss green — "in stock" */
   --color-success-bg: #e7ede2;
+
   --color-border: rgba(43, 30, 22, 0.12);   /* walnut-tinted hairline border */
   --color-border-strong: rgba(43, 30, 22, 0.22);
-  --color-glass-bg: rgba(254, 250, 224, 0.72);   /* cream glass for header */
   --color-glass-border: rgba(255, 255, 255, 0.4);
-  --color-overlay-walnut: rgba(43, 30, 22, 0.55);
+  --color-overlay: rgba(43, 30, 22, 0.55);
 
   /* ---------- Typography ---------- */
   --font-display: "Cinzel", "Iowan Old Style", serif;
@@ -66,14 +73,14 @@
   --content-max: 1200px;
   --content-padding: clamp(1.25rem, 4vw, 3rem);
 
-  /* ---------- Radius (varied by hierarchy, not uniform) ---------- */
+  /* ---------- Radius & Motifs ---------- */
   --radius-sm: 4px;
   --radius-md: 10px;
   --radius-lg: 18px;
   --radius-pill: 999px;
-  --notch-size: 14px; /* used for the joinery-notch card corner */
+  --notch-size: 14px; /* Joinery-notch card corner */
 
-  /* ---------- Shadow (warm-toned, never neutral grey) ---------- */
+  /* ---------- Shadows ---------- */
   --shadow-sm: 0 1px 2px rgba(43, 30, 22, 0.08);
   --shadow-md: 0 6px 16px -4px rgba(43, 30, 22, 0.18);
   --shadow-lg: 0 18px 40px -12px rgba(43, 30, 22, 0.28);
@@ -90,6 +97,34 @@
   --z-header: 100;
   --z-modal: 200;
   --z-chat: 150;
+}
+
+/* ---------- Dark Theme Overrides ---------- */
+[data-theme="dark"] {
+  --bg-page: #1a130d;            /* Dark roasted timber backdrop */
+  --bg-page-dim: #231a12;        /* Slightly lighter dark wood */
+  --bg-surface: #261c14;         /* Dark walnut surface for cards */
+  --bg-header: rgba(26, 19, 13, 0.88);
+
+  --text-main: #f4ece1;          /* Warm off-white body copy */
+  --text-muted: #d4a373;         /* Amber accent for subheadings */
+  --text-inverse: #1a130d;
+
+  --accent-primary: var(--color-amber);
+  --accent-primary-hover: #e8c9a3;
+  --accent-soft: rgba(212, 163, 115, 0.18);
+
+  --color-success: #81a875;
+  --color-success-bg: rgba(129, 168, 117, 0.15);
+
+  --color-border: rgba(212, 163, 115, 0.18);
+  --color-border-strong: rgba(212, 163, 115, 0.32);
+  --color-glass-border: rgba(212, 163, 115, 0.2);
+  --color-overlay: rgba(10, 7, 5, 0.75);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 18px -4px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 18px 44px -12px rgba(0, 0, 0, 0.7);
 }
 
 /* Respect user motion preferences globally */

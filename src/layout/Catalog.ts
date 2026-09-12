@@ -117,13 +117,6 @@ function renderCard(item: FurnitureItem, index: number): string {
   `;
 }
 
-/**
- * Builds the hero + filterable catalog grid from injected data.
- * Filtering here is display-only (it shows/hides already-rendered
- * cards by category); it does not fetch data, call an API, or own
- * any application state. Wire `view-details` / `inquire` clicks up
- * to real handlers from outside this component.
- */
 export function createCatalog(props: CatalogProps): HTMLElement {
   const { hero, items, filters = defaultFilters } = props;
 

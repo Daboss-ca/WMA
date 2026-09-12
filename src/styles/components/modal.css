@@ -1,7 +1,5 @@
 /**
  * WMA Wood Craft — Modal primitive
- * Structural + visual only; open/close state is driven by a class
- * toggle (`.modal--open`) applied by whatever calls it.
  */
 
 .modal {
@@ -27,7 +25,7 @@
 .modal__overlay {
   position: absolute;
   inset: 0;
-  background: var(--color-overlay-walnut);
+  background: var(--color-overlay);
   backdrop-filter: blur(2px);
 }
 
@@ -36,7 +34,7 @@
   width: min(520px, 100%);
   max-height: min(640px, 90vh);
   overflow-y: auto;
-  background: var(--color-white);
+  background: var(--bg-surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
 
@@ -58,18 +56,18 @@
 
 .modal__title {
   font-size: var(--fs-500);
-  color: var(--color-walnut);
+  color: var(--text-main);
 }
 
 .modal__close {
   font-size: var(--fs-500);
   line-height: 1;
-  color: var(--color-oak);
+  color: var(--text-muted);
 }
 
 .modal__body {
   padding: var(--space-5);
-  color: var(--color-ink);
+  color: var(--text-main);
   font-size: var(--fs-300);
   line-height: var(--lh-body);
 }
@@ -82,8 +80,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .modal,
-  .modal__panel {
-    transition: none;
-  }
+  .modal, .modal__panel { transition: none; }
 }

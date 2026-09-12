@@ -1,9 +1,5 @@
 /**
  * WMA Wood Craft — Button primitive
- * .btn is the base; pair with a modifier for color treatment.
- * Ripple is powered by a single ::after pseudo-element, positioned
- * via two custom properties (--ripple-x / --ripple-y) set inline
- * by the shared ripple helper attached in each component's TS.
  */
 
 .btn {
@@ -33,11 +29,8 @@
     color var(--duration-base) var(--ease-standard);
 }
 
-.btn:active {
-  transform: scale(0.97);
-}
+.btn:active { transform: scale(0.97); }
 
-/* Ripple: expands a soft circle from the pointer-down point */
 .btn::after {
   content: "";
   position: absolute;
@@ -53,73 +46,64 @@
   z-index: -1;
 }
 
-.btn--rippling::after {
-  animation: btn-ripple 520ms var(--ease-out-soft);
-}
+.btn--rippling::after { animation: btn-ripple 520ms var(--ease-out-soft); }
 
 @keyframes btn-ripple {
-  0% {
-    opacity: 0.25;
-    transform: translate(-50%, -50%) scale(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(22);
-  }
+  0% { opacity: 0.25; transform: translate(-50%, -50%) scale(0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(22); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .btn--rippling::after {
-    animation: none;
-  }
+  .btn--rippling::after { animation: none; }
 }
 
 /* ---------- Variants ---------- */
 
 .btn--primary {
-  background: linear-gradient(160deg, var(--color-amber), var(--color-pine));
-  color: var(--color-walnut);
+  background: var(--accent-primary);
+  color: #1a130d;
   box-shadow: var(--shadow-amber-glow);
 }
 
 .btn--primary:hover,
 .btn--primary:focus-visible {
+  background: var(--accent-primary-hover);
   box-shadow: 0 10px 28px -6px rgba(212, 163, 115, 0.7);
   transform: translateY(-1px);
 }
 
 .btn--secondary {
-  background: var(--color-walnut);
-  color: var(--color-cream);
+  background: var(--text-main);
+  color: var(--bg-page);
 }
 
 .btn--secondary:hover,
 .btn--secondary:focus-visible {
-  background: var(--color-oak);
+  background: var(--text-muted);
   transform: translateY(-1px);
 }
 
 .btn--outline {
   background: transparent;
   border-color: var(--color-border-strong);
-  color: var(--color-walnut);
+  color: var(--text-main);
 }
 
 .btn--outline:hover,
 .btn--outline:focus-visible {
-  border-color: var(--color-oak);
-  background: rgba(92, 58, 33, 0.06);
+  border-color: var(--text-muted);
+  background: var(--color-border);
 }
 
 .btn--ghost {
   background: transparent;
-  color: var(--color-walnut);
+  color: var(--text-main);
   padding-inline: var(--space-4);
 }
 
 .btn--ghost:hover,
 .btn--ghost:focus-visible {
-  background: rgba(43, 30, 22, 0.06);
+  background: var(--color-border);
 }
 
 .btn--sm {
@@ -127,13 +111,5 @@
   font-size: var(--fs-100);
 }
 
-.btn--block {
-  width: 100%;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  box-shadow: none;
-  transform: none;
-}
+.btn--block { width: 100%; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }

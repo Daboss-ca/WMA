@@ -6,7 +6,6 @@ export interface FooterLink {
 export interface SocialLink {
   label: string;
   href: string;
-  /** Raw inline SVG markup for the icon (kept simple, no icon library dependency). */
   iconSvg: string;
 }
 
@@ -21,10 +20,6 @@ export interface FooterProps {
 const defaultBrandStory =
   "Every piece we build starts as rough timber in our workshop and leaves as furniture meant to outlast the room it's built for.";
 
-/**
- * Builds the multi-column site footer. Purely presentational —
- * renders the link lists and social icons it's handed as props.
- */
 export function createFooter(props: FooterProps): HTMLElement {
   const {
     brandStory = defaultBrandStory,
@@ -60,13 +55,15 @@ export function createFooter(props: FooterProps): HTMLElement {
       <div class="footer-brand">
         <p class="footer-brand__wordmark">WMA Wood Craft</p>
         <p class="footer-brand__story">${brandStory}</p>
+        
+        <!-- Social links section: Replace href values below with official business social media URLs -->
         <div class="footer-social">
           ${socialLinks
             .map(
               (social) => `
-            <a class="footer-social__link" href="${social.href}" aria-label="${social.label}">
-              ${social.iconSvg}
-            </a>`
+              <a class="footer-social__link" href="${social.href}" aria-label="${social.label}" target="_blank" rel="noopener noreferrer">
+                ${social.iconSvg}
+              </a>`
             )
             .join("")}
         </div>

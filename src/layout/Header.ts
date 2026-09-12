@@ -1,6 +1,7 @@
 import {
   initHeaderScrollEffect,
   initMobileNavToggle,
+  initThemeToggle,
   attachRippleToAll,
 } from "./interactions";
 
@@ -17,12 +18,6 @@ export interface HeaderProps {
   ctaHref?: string;
 }
 
-/**
- * Builds the sticky site header. Purely presentational: it renders
- * whatever `navLinks`/labels it's given and wires up visual-only
- * behavior (scroll glass effect, mobile menu, button ripple).
- * It performs no navigation, routing, or data fetching itself.
- */
 export function createHeader(props: HeaderProps): HTMLElement {
   const { brandName = "WMA Wood Craft", navLinks, ctaLabel = "Request a Quote", ctaHref = "#quote" } = props;
 
@@ -63,7 +58,11 @@ export function createHeader(props: HeaderProps): HTMLElement {
             )
             .join("")}
         </ul>
-        <a class="btn btn--primary" href="${ctaHref}">${ctaLabel}</a>
+        <div class="site-nav__actions" style="display: flex; align-items: center; gap: 0.75rem;">
+          <button type="button" class="btn btn--icon theme-toggle" id="theme-toggle-btn" aria-label="Toggle theme">
+          </button>
+          <a class="btn btn--primary" href="${ctaHref}">${ctaLabel}</a>
+        </div>
       </nav>
     </div>
   `;
@@ -71,6 +70,11 @@ export function createHeader(props: HeaderProps): HTMLElement {
   const toggleButton = header.querySelector<HTMLElement>(".nav-toggle");
   if (toggleButton) {
     initMobileNavToggle(header, toggleButton);
+  }
+
+  const themeBtn = header.querySelector<HTMLElement>("#theme-toggle-btn");
+  if (themeBtn) {
+    initThemeToggle(themeBtn);
   }
 
   initHeaderScrollEffect(header);

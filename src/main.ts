@@ -1,14 +1,13 @@
 import './styles/index.css';
+import { initTheme } from './utils/theme';
 import { createHeader } from "./layout/Header";
 import { createFooter } from "./layout/Footer";
 import { createCatalog } from "./layout/Catalog";
 import type { FurnitureItem } from "./types/furniture";
 
-/**
- * Demo/placeholder data only — swap this for whatever real data
- * source (API, CMS, static JSON) your business logic layer provides.
- * None of the UI components import or know about this file.
- */
+// Initialize Theme on startup
+initTheme();
+
 const demoItems: FurnitureItem[] = [
   {
     id: "tbl-001",
@@ -49,6 +48,7 @@ const demoItems: FurnitureItem[] = [
 const app = document.querySelector<HTMLDivElement>("#app");
 
 if (app) {
+  app.innerHTML = "";
   app.append(
     createHeader({
       navLinks: [
@@ -96,13 +96,13 @@ if (app) {
       socialLinks: [
         {
           label: "Instagram",
-          href: "#",
+          href: "https://instagram.com",
           iconSvg:
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg>',
         },
         {
           label: "Facebook",
-          href: "#",
+          href: "https://facebook.com",
           iconSvg:
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 21v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3V2h-3a5 5 0 0 0-5 5v2H7v4h3v8z"/></svg>',
         },

@@ -20,8 +20,6 @@
   padding-block: var(--space-6);
 }
 
-/* A seam motif standing in for a wood joint between sections —
-   used once between hero and catalog, not repeated everywhere. */
 .grain-seam {
   position: relative;
   height: 1px;
@@ -44,9 +42,9 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--color-amber);
+  background: var(--accent-primary);
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 0 5px var(--color-cream), 0 0 0 6px var(--color-border-strong);
+  box-shadow: 0 0 0 5px var(--bg-page), 0 0 0 6px var(--color-border-strong);
 }
 
 /* ---------- Hero ---------- */
@@ -65,21 +63,21 @@
 .hero__eyebrow {
   display: inline-block;
   font-size: var(--fs-200);
-  color: var(--color-oak);
+  color: var(--text-muted);
   font-weight: 600;
   margin-bottom: var(--space-3);
 }
 
 .hero__title {
   font-size: var(--fs-800);
-  color: var(--color-walnut);
+  color: var(--text-main);
   max-width: 14ch;
   margin-bottom: var(--space-5);
 }
 
 .hero__lead {
   font-size: var(--fs-400);
-  color: var(--color-oak);
+  color: var(--text-muted);
   max-width: 46ch;
   line-height: var(--lh-snug);
   margin-bottom: var(--space-6);
@@ -101,16 +99,14 @@
   display: block;
   font-family: var(--font-display);
   font-size: var(--fs-600);
-  color: var(--color-walnut);
+  color: var(--text-main);
 }
 
 .hero__stat-label {
   font-size: var(--fs-100);
-  color: var(--color-oak);
+  color: var(--text-muted);
 }
 
-/* The wood-swatch panel: a stack of layered "boards" implying material,
-   entering once on load rather than on every scroll. */
 .hero__swatch {
   position: relative;
   aspect-ratio: 4 / 5;
@@ -121,7 +117,7 @@
       var(--color-pine) 0px,
       var(--color-oak) 18px,
       var(--color-pine) 34px,
-      var(--color-amber) 46px,
+      var(--accent-primary) 46px,
       var(--color-oak) 64px
     );
   box-shadow: var(--shadow-lg);
@@ -136,7 +132,7 @@
   background: linear-gradient(
     200deg,
     transparent 40%,
-    var(--color-overlay-walnut) 130%
+    var(--color-overlay) 130%
   );
 }
 
@@ -144,8 +140,8 @@
   position: absolute;
   left: var(--space-5);
   bottom: var(--space-5);
-  background: var(--color-cream);
-  color: var(--color-walnut);
+  background: var(--bg-surface);
+  color: var(--text-main);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   font-size: var(--fs-100);
@@ -153,39 +149,21 @@
 }
 
 @keyframes swatch-settle {
-  from {
-    opacity: 0;
-    transform: translateY(14px) rotate(1.5deg);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) rotate(0deg);
-  }
+  from { opacity: 0; transform: translateY(14px) rotate(1.5deg); }
+  to { opacity: 1; transform: translateY(0) rotate(0deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero__swatch {
-    animation: none;
-  }
+  .hero__swatch { animation: none; }
 }
 
 @media (max-width: 900px) {
-  .hero__grid {
-    grid-template-columns: 1fr;
-  }
-
-  .hero__swatch {
-    order: -1;
-    aspect-ratio: 16 / 10;
-  }
-
-  .hero__title {
-    max-width: none;
-    font-size: var(--fs-700);
-  }
+  .hero__grid { grid-template-columns: 1fr; }
+  .hero__swatch { order: -1; aspect-ratio: 16 / 10; }
+  .hero__title { max-width: none; font-size: var(--fs-700); }
 }
 
-/* ---------- Section headings shared across main content ---------- */
+/* ---------- Section headings ---------- */
 .section__head {
   display: flex;
   align-items: flex-end;
@@ -197,11 +175,11 @@
 
 .section__title {
   font-size: var(--fs-600);
-  color: var(--color-walnut);
+  color: var(--text-main);
 }
 
 .section__subtitle {
   font-size: var(--fs-300);
-  color: var(--color-oak);
+  color: var(--text-muted);
   max-width: 52ch;
 }
