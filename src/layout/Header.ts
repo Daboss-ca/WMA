@@ -1,3 +1,4 @@
+import logoSvg from "../assets/logo/logo.svg";
 import {
   initHeaderScrollEffect,
   initMobileNavToggle,
@@ -27,7 +28,7 @@ export function createHeader(props: HeaderProps): HTMLElement {
   header.innerHTML = `
     <div class="site-header__inner">
       <a class="brand" href="/" aria-label="${brandName} home">
-        <span class="brand__mark" aria-hidden="true"></span>
+        <img src="${logoSvg}" alt="${brandName} Logo" class="brand__logo-img" width="40" height="40" />
         <span class="brand__wordmark">WMA <strong>Wood Craft</strong></span>
       </a>
 

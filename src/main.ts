@@ -64,14 +64,13 @@ if (app) {
       main.append(
         createCatalog({
           hero: {
-            eyebrow: "Built in the workshop, not the warehouse",
-            title: "Furniture cut, joined, and finished by hand",
+            title: "YOU BRING THE PRODUCT, WE'LL BUILD THE KIOSK",
             lead: "WMA Wood Craft designs and builds solid-wood tables, cabinets, and custom pieces for homes and small businesses across the region.",
             primaryCta: { label: "Request a Quote", href: "#quote" },
             secondaryCta: { label: "View the collection", href: "#catalog" },
             stats: [
-              { value: "14 yrs", label: "in the workshop" },
-              { value: "600+", label: "pieces delivered" },
+              { value: "6yrs", label: "in the workshop" },
+              { value: "1.5k", label: "pieces delivered" },
             ],
             swatchTag: "Walnut & oak, hand-finished",
           },
