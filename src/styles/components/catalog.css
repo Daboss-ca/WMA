@@ -98,13 +98,14 @@
   position: relative;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--accent-soft), var(--color-pine));
+  background: #fff;
 }
 
 .card__media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  background: #fff;
   transition: transform var(--duration-slow) var(--ease-out-soft);
 }
 
