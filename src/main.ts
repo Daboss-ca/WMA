@@ -95,13 +95,13 @@ if (app) {
       socialLinks: [
         {
           label: "Instagram",
-          href: "https://instagram.com",
+          href: "https://www.instagram.com/",
           iconSvg:
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg>',
         },
         {
           label: "Facebook",
-          href: "https://facebook.com",
+          href: "https://www.facebook.com/wm.arnuco1983/",
           iconSvg:
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 21v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3V2h-3a5 5 0 0 0-5 5v2H7v4h3v8z"/></svg>',
         },
