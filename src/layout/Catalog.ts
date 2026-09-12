@@ -106,12 +106,9 @@ function renderCard(item: FurnitureItem, index: number): string {
       </div>
 
       <div class="card__actions">
-        <button type="button" class="btn btn--outline btn--sm" data-action="view-details" data-id="${item.id}">
-          View details
-        </button>
-        <button type="button" class="btn btn--secondary btn--sm" data-action="inquire" data-id="${item.id}">
-          Inquire
-        </button>
+        <a href="#contact" class="btn btn--secondary btn--sm btn--block">
+          Inquire ${item.category}
+        </a>
       </div>
     </article>
   `;
@@ -141,25 +138,42 @@ export function createCatalog(props: CatalogProps): HTMLElement {
 
   const grid = section.querySelector<HTMLElement>(".catalog-grid");
   const emptyState = section.querySelector<HTMLElement>(".catalog-empty");
-  const cards = Array.from(section.querySelectorAll<HTMLElement>(".card"));
   const filterButtons = Array.from(section.querySelectorAll<HTMLButtonElement>(".filter-badge"));
 
-  filterButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const selected = button.dataset.filter as FilterCategory;
+  // Filtering System gamit ang Event Delegation para sigurado ang pag-listen sa clicks
+  section.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    const filterBtn = target.closest<HTMLButtonElement>(".filter-badge");
 
-      filterButtons.forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+    if (!filterBtn) return;
 
-      let visibleCount = 0;
-      cards.forEach((card) => {
-        const matches = selected === "All" || card.dataset.category === selected;
-        card.hidden = !matches;
-        if (matches) visibleCount += 1;
-      });
+    const selectedCategory = filterBtn.dataset.filter as FilterCategory;
 
-      if (emptyState) emptyState.hidden = visibleCount !== 0;
-      if (grid) grid.hidden = visibleCount === 0;
+    // Update active button state
+    filterButtons.forEach((btn) => {
+      btn.setAttribute("aria-pressed", String(btn === filterBtn));
     });
+
+    // Kunin ang lahat ng cards sa mismong instant ng click
+    const cards = Array.from(section.querySelectorAll<HTMLElement>(".card"));
+    let visibleCount = 0;
+
+    cards.forEach((card) => {
+      const cardCategory = card.dataset.category;
+      const isMatch = selectedCategory === "All" || cardCategory === selectedCategory;
+
+      if (isMatch) {
+        card.style.display = "";
+        card.removeAttribute("hidden");
+        visibleCount++;
+      } else {
+        card.style.display = "none";
+        card.setAttribute("hidden", "true");
+      }
+    });
+
+    if (emptyState) emptyState.hidden = visibleCount !== 0;
+    if (grid) grid.hidden = visibleCount === 0;
   });
 
   attachRippleToAll(section);

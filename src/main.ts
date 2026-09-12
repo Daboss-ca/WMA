@@ -5,21 +5,65 @@ import { createFooter } from "./layout/Footer";
 import { createCatalog } from "./layout/Catalog";
 import type { FurnitureItem } from "./types/furniture";
 
-// Import image asset dynamically for Vite
-import catalogImg1 from "./assets/catalogs/catalog1.png";
+// Import Kiosk image assets dynamically for Vite
+import img1 from "./assets/catalogs/kiosk/img1.png";
+import img2 from "./assets/catalogs/kiosk/img2.png";
+import img3 from "./assets/catalogs/kiosk/img3.png";
+import img4 from "./assets/catalogs/kiosk/img4.png";
 
 // Initialize Theme on startup
 initTheme();
 
 const demoItems: FurnitureItem[] = [
   {
+    id: "kio-001",
+    name: "Classic Market Display Kiosk",
+    category: "Kiosks",
+    description: "Modular pine kiosk built for weekend markets and pop-ups.",
+    dimensions: { width: 48, height: 78, depth: 30, unit: "in" },
+    imageUrl: img1,
+    imageAlt: "Classic Market Display Kiosk",
+    inStock: true,
+  },
+  {
+    id: "kio-002",
+    name: "Modular Retail Kiosk",
+    category: "Kiosks",
+    description: "Versatile wooden kiosk setup designed for retail product displays.",
+    dimensions: { width: 60, height: 80, depth: 36, unit: "in" },
+    imageUrl: img2,
+    imageAlt: "Modular Retail Kiosk",
+    isCustomizable: true,
+    inStock: true,
+  },
+  {
+    id: "kio-003",
+    name: "Commercial Mall Kiosk",
+    category: "Kiosks",
+    description: "Premium finished hardwood kiosk tailored for indoor mall spaces.",
+    dimensions: { width: 72, height: 84, depth: 42, unit: "in" },
+    imageUrl: img3,
+    imageAlt: "Commercial Mall Kiosk",
+    isCustomizable: true,
+    inStock: false,
+  },
+  {
+    id: "kio-004",
+    name: "Custom Event & Food Kiosk",
+    category: "Kiosks",
+    description: "Heavy-duty custom timber kiosk with integrated counter space.",
+    dimensions: { width: 96, height: 90, depth: 48, unit: "in" },
+    imageUrl: img4,
+    imageAlt: "Custom Event & Food Kiosk",
+    isCustomizable: true,
+    inStock: true,
+  },
+  {
     id: "tbl-001",
     name: "Amber Grain Dining Table",
     category: "Tables",
     description: "Live-edge walnut top on a hand-joined oak trestle base.",
     dimensions: { width: 72, height: 30, depth: 38, unit: "in" },
-    imageUrl: catalogImg1,
-    imageAlt: "Amber Grain Dining Table hand-crafted solid wood finish",
     isCustomizable: true,
     inStock: true,
   },
@@ -29,20 +73,8 @@ const demoItems: FurnitureItem[] = [
     category: "Cabinets",
     description: "Three-door cabinet with dovetailed drawers and brass pulls.",
     dimensions: { width: 64, height: 34, depth: 20, unit: "in" },
-    imageUrl: catalogImg1,
-    imageAlt: "Heritage Sideboard cabinet",
     isCustomizable: true,
     inStock: false,
-  },
-  {
-    id: "kio-003",
-    name: "Market Display Kiosk",
-    category: "Kiosks",
-    description: "Modular pine kiosk built for weekend markets and pop-ups.",
-    dimensions: { width: 48, height: 78, depth: 30, unit: "in" },
-    imageUrl: catalogImg1,
-    imageAlt: "Market Display Kiosk",
-    inStock: true,
   },
   {
     id: "cus-021",
@@ -50,8 +82,6 @@ const demoItems: FurnitureItem[] = [
     category: "Custom",
     description: "Floor-to-ceiling shelving, finished to match your millwork.",
     dimensions: { width: 96, height: 108, depth: 14, unit: "in" },
-    imageUrl: catalogImg1,
-    imageAlt: "Custom Built-In Shelving",
     isCustomizable: true,
   },
 ];
