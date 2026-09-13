@@ -111,15 +111,10 @@
   position: relative;
   aspect-ratio: 4 / 5;
   border-radius: var(--radius-lg);
-  background:
-    repeating-linear-gradient(
-      100deg,
-      var(--color-pine) 0px,
-      var(--color-oak) 18px,
-      var(--color-pine) 34px,
-      var(--accent-primary) 46px,
-      var(--color-oak) 64px
-    );
+  background-image: url("../../assets/main.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   box-shadow: var(--shadow-lg);
   animation: swatch-settle var(--duration-slow) var(--ease-out-soft) both;
 }

@@ -54,9 +54,7 @@ function renderHero(hero: HeroContent): string {
           }
         </div>
 
-        <div class="hero__swatch" role="img" aria-label="Sample of hand-finished timber grain">
-          ${hero.swatchTag ? `<span class="hero__swatch-tag">${hero.swatchTag}</span>` : ""}
-        </div>
+        <div class="hero__swatch" role="img" aria-label="Sample of hand-finished timber grain"></div>
       </div>
     </section>
   `;
