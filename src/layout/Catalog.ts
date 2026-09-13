@@ -1,5 +1,18 @@
 import type { FilterCategory, FurnitureItem } from "../types/furniture";
 import { attachRippleToAll } from "./interactions";
+import * as THREE from "three";
+import gsap from "gsap";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import {
+  createWmaMaterials,
+  disposeWmaMaterials,
+  buildKiosk,
+  buildTable,
+  buildCabinet,
+  disposeWmaGroup,
+  type AssemblyPart,
+  type WmaMaterials,
+} from "./Wmafurniture ";
 
 export interface HeroContent {
   eyebrow?: string;
@@ -54,7 +67,12 @@ function renderHero(hero: HeroContent): string {
           }
         </div>
 
-        <div class="hero__swatch" role="img" aria-label="Sample of hand-finished timber grain"></div>
+        <div
+          id="hero-3d-container"
+          style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 520px; background: transparent;"
+          role="presentation"
+          aria-hidden="true"
+        ></div>
       </div>
     </section>
   `;
@@ -112,6 +130,242 @@ function renderCard(item: FurnitureItem, index: number): string {
   `;
 }
 
+const CATEGORY_TRANSFORM: Record<string, { scale: number; offsetY: number }> = {
+  Tables: { scale: 1.15, offsetY: 0 },
+  Cabinets: { scale: 1.15, offsetY: 0 },
+  Kiosks: { scale: 1.15, offsetY: 0 },
+  Custom: { scale: 1.15, offsetY: 0 },
+  All: { scale: 1.15, offsetY: 0 },
+};
+const DEFAULT_TRANSFORM = CATEGORY_TRANSFORM.Kiosks;
+
+function buildPartsForCategory(category: string, materials: WmaMaterials): THREE.Group {
+  let group: THREE.Group;
+
+  if (category === "Tables") {
+    group = buildTable(materials);
+  } else if (category === "Cabinets") {
+    group = buildCabinet(materials);
+  } else {
+    group = buildKiosk(materials); 
+  }
+
+  const transform = CATEGORY_TRANSFORM[category] ?? DEFAULT_TRANSFORM;
+  group.scale.setScalar(transform.scale);
+  group.position.y = transform.offsetY * transform.scale;
+
+  return group;
+}
+
+function whenContainerSized(container: HTMLElement, callback: () => void): () => void {
+  const rect = container.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0) {
+    callback();
+    return () => {};
+  }
+
+  const observer = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) {
+        observer.disconnect();
+        callback();
+        return;
+      }
+    }
+  });
+  observer.observe(container);
+  return () => observer.disconnect();
+}
+
+interface AssemblyScene {
+  destroy: () => void;
+}
+
+function createAssemblyScene(container: HTMLElement): AssemblyScene {
+  const scene = new THREE.Scene();
+
+  const camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight || 1, 0.1, 1000);
+  camera.position.set(0, 0.6, 6.4);
+  camera.lookAt(0, 0, 0);
+
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  container.appendChild(renderer.domElement);
+
+  const pmremGenerator = new THREE.PMREMGenerator(renderer);
+  const environmentTexture = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environment = environmentTexture;
+  pmremGenerator.dispose();
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+  const keyLight = new THREE.DirectionalLight(0xfff1de, 1.3);
+  keyLight.position.set(4, 7, 5);
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.45);
+  fillLight.position.set(-5, 3, 4);
+  const rimLight = new THREE.DirectionalLight(0xd4af37, 0.55);
+  rimLight.position.set(-4, -2, -5);
+  scene.add(ambientLight, keyLight, fillLight, rimLight);
+
+  const furnitureGroup = new THREE.Group();
+  scene.add(furnitureGroup);
+
+  const materials = createWmaMaterials();
+
+  let activeGroup = buildPartsForCategory("Kiosks", materials);
+  furnitureGroup.add(activeGroup);
+
+  let currentCategory = "Kiosks";
+  let isTransitioning = false;
+  let pendingCategory: string | null = null;
+
+  const cycleCategories = ["Kiosks", "Tables", "Cabinets"];
+  let cycleIndex = 0;
+
+  function transitionToCategory(category: string) {
+    if (category === currentCategory && !isTransitioning) return;
+    currentCategory = category;
+
+    if (isTransitioning) {
+      pendingCategory = category;
+      return;
+    }
+    isTransitioning = true;
+
+    const oldGroup = activeGroup;
+    const meshesToDisassemble = oldGroup.children as AssemblyPart[];
+
+    const explodeTl = gsap.timeline({
+      onComplete: () => {
+        furnitureGroup.remove(oldGroup);
+        disposeWmaGroup(oldGroup);
+
+        const newGroup = buildPartsForCategory(category, materials);
+        newGroup.children.forEach((mesh) => {
+          const m = mesh as AssemblyPart;
+          m.position.set(m.userData.explodePos.x, m.userData.explodePos.y, m.userData.explodePos.z);
+          m.scale.set(0, 0, 0);
+        });
+
+        furnitureGroup.add(newGroup);
+        activeGroup = newGroup;
+
+        const buildTl = gsap.timeline({
+          onComplete: () => {
+            isTransitioning = false;
+            if (pendingCategory && pendingCategory !== category) {
+              const next = pendingCategory;
+              pendingCategory = null;
+              transitionToCategory(next);
+            } else {
+              pendingCategory = null;
+            }
+          },
+        });
+
+        newGroup.children.forEach((mesh, idx) => {
+          const m = mesh as AssemblyPart;
+          buildTl
+            .to(
+              m.position,
+              { x: m.userData.targetPos.x, y: m.userData.targetPos.y, z: m.userData.targetPos.z, duration: 1.1, ease: "power2.out" },
+              idx * 0.08
+            )
+            .to(m.scale, { x: 1, y: 1, z: 1, duration: 1.1, ease: "power2.out" }, idx * 0.08);
+        });
+      },
+    });
+
+    meshesToDisassemble.forEach((mesh, idx) => {
+      explodeTl
+        .to(
+          mesh.position,
+          { x: mesh.userData.explodePos.x, y: mesh.userData.explodePos.y, z: mesh.userData.explodePos.z, duration: 0.8, ease: "power2.in" },
+          idx * 0.05
+        )
+        .to(mesh.scale, { x: 0, y: 0, z: 0, duration: 0.8, ease: "power2.in" }, idx * 0.05);
+    });
+  }
+
+  // --- RAYCASTER SETUP (Click Interaction directly on the 3D Object) ---
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+
+  function onPointerMove(event: PointerEvent) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(furnitureGroup, true);
+
+    renderer.domElement.style.cursor = intersects.length > 0 ? "pointer" : "default";
+  }
+
+  function onClick(event: MouseEvent) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(furnitureGroup, true);
+
+    if (intersects.length > 0 && !isTransitioning) {
+      cycleIndex = (cycleIndex + 1) % cycleCategories.length;
+      transitionToCategory(cycleCategories[cycleIndex]);
+    }
+  }
+
+  renderer.domElement.addEventListener("pointermove", onPointerMove);
+  renderer.domElement.addEventListener("click", onClick);
+
+  let animationFrameId = 0;
+  function animate() {
+    if (!container.isConnected) {
+      destroy();
+      return;
+    }
+    animationFrameId = requestAnimationFrame(animate);
+    furnitureGroup.rotation.y += 0.005;
+    renderer.render(scene, camera);
+  }
+  animationFrameId = requestAnimationFrame(animate);
+
+  function handleResize() {
+    if (!container.clientWidth || !container.clientHeight) return;
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+  }
+  window.addEventListener("resize", handleResize);
+
+  let destroyed = false;
+  function destroy() {
+    if (destroyed) return;
+    destroyed = true;
+    cancelAnimationFrame(animationFrameId);
+    window.removeEventListener("resize", handleResize);
+    renderer.domElement.removeEventListener("pointermove", onPointerMove);
+    renderer.domElement.removeEventListener("click", onClick);
+
+    disposeWmaGroup(activeGroup);
+    disposeWmaMaterials(materials);
+    environmentTexture.dispose();
+
+    renderer.dispose();
+    if (renderer.domElement.parentElement === container) {
+      container.removeChild(renderer.domElement);
+    }
+  }
+
+  return { destroy };
+}
+
 export function createCatalog(props: CatalogProps): HTMLElement {
   const { hero, items, filters = defaultFilters } = props;
 
@@ -134,11 +388,17 @@ export function createCatalog(props: CatalogProps): HTMLElement {
     </section>
   `;
 
+  const heroContainer = section.querySelector<HTMLElement>("#hero-3d-container");
+  if (heroContainer) {
+    whenContainerSized(heroContainer, () => {
+      createAssemblyScene(heroContainer);
+    });
+  }
+
   const grid = section.querySelector<HTMLElement>(".catalog-grid");
   const emptyState = section.querySelector<HTMLElement>(".catalog-empty");
   const filterButtons = Array.from(section.querySelectorAll<HTMLButtonElement>(".filter-badge"));
 
-  // Filtering System gamit ang Event Delegation para sigurado ang pag-listen sa clicks
   section.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
     const filterBtn = target.closest<HTMLButtonElement>(".filter-badge");
@@ -147,12 +407,10 @@ export function createCatalog(props: CatalogProps): HTMLElement {
 
     const selectedCategory = filterBtn.dataset.filter as FilterCategory;
 
-    // Update active button state
     filterButtons.forEach((btn) => {
       btn.setAttribute("aria-pressed", String(btn === filterBtn));
     });
 
-    // Kunin ang lahat ng cards sa mismong instant ng click
     const cards = Array.from(section.querySelectorAll<HTMLElement>(".card"));
     let visibleCount = 0;
 

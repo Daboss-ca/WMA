@@ -111,10 +111,8 @@
   position: relative;
   aspect-ratio: 4 / 5;
   border-radius: var(--radius-lg);
-  background-image: url("../../assets/main.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  overflow: hidden;
+  background: #120e09;
   box-shadow: var(--shadow-lg);
   animation: swatch-settle var(--duration-slow) var(--ease-out-soft) both;
 }
@@ -129,6 +127,20 @@
     transparent 40%,
     var(--color-overlay) 130%
   );
+  z-index: 1;
+  pointer-events: none;
+}
+
+.hero__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  background: #120e09;
+  z-index: 0;
 }
 
 .hero__swatch-tag {
@@ -141,6 +153,7 @@
   border-radius: var(--radius-md);
   font-size: var(--fs-100);
   box-shadow: var(--shadow-md);
+  z-index: 2;
 }
 
 @keyframes swatch-settle {

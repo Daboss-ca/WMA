@@ -5,7 +5,6 @@ import { createFooter } from "./layout/Footer";
 import { createCatalog } from "./layout/Catalog";
 import { catalogItems } from "./data/furnitureData";
 
-// Initialize Theme on startup
 initTheme();
 
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -26,7 +25,6 @@ if (app) {
           { value: "6yrs", label: "in the workshop" },
           { value: "1.5k", label: "pieces delivered" },
         ],
-        swatchTag: "Walnut & oak, hand-finished",
       },
       items: catalogItems,
     })
