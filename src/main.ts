@@ -5,6 +5,10 @@ import { createFooter } from "./layout/Footer";
 import { createCatalog } from "./layout/Catalog";
 import { catalogItems } from "./data/furnitureData";
 
+// BAGO: I-import ang Auth Components at UI State Manager
+import { createAuthModal, attachAuthModalEvents } from "./components/auth/AuthModal";
+import { uiState } from "./state/uiStateManager";
+
 initTheme();
 
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -19,7 +23,7 @@ if (app) {
       hero: {
         title: "YOU BRING THE PRODUCT, WE'LL BUILD THE KIOSK",
         lead: "WMA Wood Craft designs and builds solid-wood tables, cabinets, and custom pieces for homes and small businesses across the region.",
-        primaryCta: { label: "Request a Quote", href: "#quote" },
+        primaryCta: { label: "Login", href: "#login" },
         secondaryCta: { label: "View the collection", href: "#catalog" },
         stats: [
           { value: "6yrs", label: "in the workshop" },
@@ -67,4 +71,18 @@ if (app) {
       ],
     })
   );
+
+  // BAGO: I-mount ang Auth Modal sa pinakadulo ng body para iwas layout issues
+  const authModalElement = createAuthModal();
+  document.body.appendChild(authModalElement);
+  
+  // BAGO: I-attach ang lahat ng form, close, at tab event listeners
+  attachAuthModalEvents(authModalElement);
+
+  // BAGO: I-override ang default behavior ng Hero CTA "Login" button para buksan ang modal
+  const heroLoginBtn = document.querySelector('a[href="#login"]');
+  heroLoginBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    uiState.openModal('login');
+  });
 }

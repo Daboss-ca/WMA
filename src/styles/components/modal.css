@@ -1,5 +1,5 @@
 /**
- * WMA Wood Craft — Modal primitive
+ * WMA Wood Craft — Modal primitive & Auth Modal
  */
 
 .modal {
@@ -79,6 +79,149 @@
   padding: var(--space-4) var(--space-5) var(--space-5);
 }
 
+/* ---------- Auth Modal Specifics ---------- */
+
+.auth-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal, 9999);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: var(--color-overlay);
+  backdrop-filter: blur(6px) saturate(140%);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
+
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity var(--duration-base) var(--ease-standard), visibility 0s linear var(--duration-base);
+}
+
+.auth-modal-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+  transition: opacity var(--duration-base) var(--ease-standard), visibility 0s;
+}
+
+/* Glassmorphism card: translucent surface over the blurred backdrop,
+   a hairline warm-tinted edge, and a soft diffused (not hard-edged)
+   drop shadow so it reads as floating rather than pasted on. */
+.auth-modal-card {
+  position: relative;
+  width: min(440px, 100%);
+  max-height: min(640px, 90vh);
+  overflow-y: auto;
+  background: var(--bg-surface);
+  background: color-mix(in srgb, var(--bg-surface) 94%, transparent);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--color-border);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 14%, var(--color-border));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  box-shadow:
+    0 30px 80px -20px rgba(0, 0, 0, 0.55),
+    0 12px 32px -12px rgba(0, 0, 0, 0.4),
+    0 0 0 1px color-mix(in srgb, var(--accent-primary) 6%, transparent);
+  padding: var(--space-6) var(--space-5);
+
+  transform: translateY(16px) scale(0.97);
+  filter: blur(6px);
+  transition:
+    transform var(--duration-base) var(--ease-out-soft),
+    filter var(--duration-base) var(--ease-out-soft);
+}
+
+.auth-modal-backdrop.open .auth-modal-card {
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: var(--fs-500);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color var(--duration-fast),
+    background-color var(--duration-fast),
+    transform var(--duration-fast) var(--ease-out-soft);
+}
+
+.modal-close-btn:hover {
+  color: var(--text-main);
+  background: var(--color-border);
+  transform: rotate(90deg);
+}
+
+.auth-tabs {
+  position: relative;
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-5);
+  margin-top: var(--space-2);
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: var(--space-3) 0;
+  font-size: var(--fs-300);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--duration-fast);
+}
+
+.tab-btn:hover {
+  color: var(--text-main);
+}
+
+.tab-btn.active {
+  color: var(--accent-primary);
+}
+
+/* Shared sliding indicator instead of a border on each button — driven
+   purely by the existing .active class toggle, no JS changes needed. */
+.tab-indicator {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 50%;
+  height: 2px;
+  background: var(--accent-primary);
+  transform: translateX(0%);
+  transition: transform var(--duration-base) var(--ease-out-soft);
+}
+
+#tab-signup-btn.active ~ .tab-indicator {
+  transform: translateX(100%);
+}
+
+.hidden {
+  display: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .modal, .modal__panel { transition: none; }
+  .modal, .modal__panel, .auth-modal-backdrop, .auth-modal-card, .modal-close-btn, .tab-indicator {
+    transition: none;
+  }
+  .auth-modal-card {
+    filter: none;
+  }
 }
