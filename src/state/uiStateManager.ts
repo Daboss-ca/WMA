@@ -1,12 +1,10 @@
 import type { FormMode, AlertMessage } from '../types/auth/form.types.js';
 
 class UIStateManager {
-  private isModalOpen: boolean = false;
   private activeMode: FormMode = 'login';
 
   // Modal Open/Close Controls
   public openModal(initialMode: FormMode = 'login'): void {
-    this.isModalOpen = true;
     this.activeMode = initialMode;
     const modalElement = document.getElementById('auth-modal');
     if (modalElement) {
@@ -17,7 +15,6 @@ class UIStateManager {
   }
 
   public closeModal(): void {
-    this.isModalOpen = false;
     const modalElement = document.getElementById('auth-modal');
     if (modalElement) {
       modalElement.classList.remove('open');
