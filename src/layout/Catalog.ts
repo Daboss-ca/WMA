@@ -292,7 +292,7 @@ function createAssemblyScene(container: HTMLElement): AssemblyScene {
     });
   }
 
-  // --- RAYCASTER SETUP (Click Interaction directly on the 3D Object) ---
+  // --- RAYCASTER SETUP ---
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
@@ -369,7 +369,16 @@ function createAssemblyScene(container: HTMLElement): AssemblyScene {
 export function createCatalog(props: CatalogProps): HTMLElement {
   const { hero, items, filters = defaultFilters } = props;
 
+  // BAGO: I-shuffle ang items array (Fisher-Yates) para random ang unang order sa HTML
+  // Maiiwasan nito na mapuno ng iisang category (ex. Kiosks) ang first 6 items.
+  const shuffledItems = [...items];
+  for (let i = shuffledItems.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledItems[i], shuffledItems[j]] = [shuffledItems[j], shuffledItems[i]];
+  }
+
   const section = document.createElement("div");
+  
   section.innerHTML = `
     ${renderHero(hero)}
     <div class="grain-seam" role="presentation"></div>
@@ -382,8 +391,14 @@ export function createCatalog(props: CatalogProps): HTMLElement {
       </div>
       ${renderFilterBar(filters)}
       <div class="catalog-grid">
-        ${items.map(renderCard).join("")}
+        ${shuffledItems.map(renderCard).join("")}
       </div>
+      
+      <!-- View more button container -->
+      <div class="catalog-actions" style="display: flex; justify-content: center; margin-top: 2.5rem;">
+        <button type="button" class="btn btn--outline" id="view-more-btn" style="display: none;">View more</button>
+      </div>
+
       <p class="catalog-empty" hidden>No pieces match that category yet — try another filter.</p>
     </section>
   `;
@@ -398,38 +413,78 @@ export function createCatalog(props: CatalogProps): HTMLElement {
   const grid = section.querySelector<HTMLElement>(".catalog-grid");
   const emptyState = section.querySelector<HTMLElement>(".catalog-empty");
   const filterButtons = Array.from(section.querySelectorAll<HTMLButtonElement>(".filter-badge"));
+  const viewMoreBtn = section.querySelector<HTMLButtonElement>("#view-more-btn");
 
-  section.addEventListener("click", (event) => {
-    const target = event.target as HTMLElement;
-    const filterBtn = target.closest<HTMLButtonElement>(".filter-badge");
+  // BAGO: Pinalitan ang boolean isExpanded ng number visibleLimit
+  let currentCategory: string = "All";
+  let visibleLimit: number = 6;
+  const ITEMS_TO_ADD = 3;
 
-    if (!filterBtn) return;
-
-    const selectedCategory = filterBtn.dataset.filter as FilterCategory;
-
-    filterButtons.forEach((btn) => {
-      btn.setAttribute("aria-pressed", String(btn === filterBtn));
-    });
-
+  function updateGridUI() {
     const cards = Array.from(section.querySelectorAll<HTMLElement>(".card"));
-    let visibleCount = 0;
+    let totalMatchesForCategory = 0;
+    let currentlyShowingCount = 0;
 
     cards.forEach((card) => {
       const cardCategory = card.dataset.category;
-      const isMatch = selectedCategory === "All" || cardCategory === selectedCategory;
+      const isMatch = currentCategory === "All" || cardCategory === currentCategory;
 
       if (isMatch) {
-        card.style.display = "";
-        card.removeAttribute("hidden");
-        visibleCount++;
+        totalMatchesForCategory++;
+        // Kung hindi pa lumalagpas sa limit (6, 9, 12, etc.), ipakita. Kung lumagpas, itago.
+        if (currentlyShowingCount < visibleLimit) {
+          card.style.display = "";
+          card.removeAttribute("hidden");
+          currentlyShowingCount++;
+        } else {
+          card.style.display = "none";
+          card.setAttribute("hidden", "true");
+        }
       } else {
         card.style.display = "none";
         card.setAttribute("hidden", "true");
       }
     });
 
-    if (emptyState) emptyState.hidden = visibleCount !== 0;
-    if (grid) grid.hidden = visibleCount === 0;
+    if (emptyState) emptyState.hidden = totalMatchesForCategory !== 0;
+    if (grid) grid.hidden = totalMatchesForCategory === 0;
+
+    // Ipakita ang button kung mas marami pang total items kaysa sa kasalukuyang nakikita
+    if (viewMoreBtn) {
+      if (totalMatchesForCategory > visibleLimit) {
+        viewMoreBtn.style.display = "inline-flex";
+      } else {
+        viewMoreBtn.style.display = "none";
+      }
+    }
+  }
+
+  updateGridUI();
+
+  section.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    
+    // Filter click handler
+    const filterBtn = target.closest<HTMLButtonElement>(".filter-badge");
+    if (filterBtn) {
+      currentCategory = filterBtn.dataset.filter as FilterCategory;
+      visibleLimit = 6; // Reset the limit back to 6 whenever a new filter is clicked
+
+      filterButtons.forEach((btn) => {
+        btn.setAttribute("aria-pressed", String(btn === filterBtn));
+      });
+
+      updateGridUI();
+      return;
+    }
+
+    // View more click handler
+    const viewMoreClicked = target.closest<HTMLButtonElement>("#view-more-btn");
+    if (viewMoreClicked) {
+      visibleLimit += ITEMS_TO_ADD; // BAGO: Magdagdag lang ng 3 images sa grid
+      updateGridUI();
+      return;
+    }
   });
 
   attachRippleToAll(section);
