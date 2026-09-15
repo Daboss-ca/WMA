@@ -5,11 +5,18 @@ import { createFooter } from "./layout/Footer";
 import { createCatalog } from "./layout/Catalog";
 import { catalogItems } from "./data/furnitureData";
 
-// BAGO: I-import ang Auth Components at UI State Manager
 import { createAuthModal, attachAuthModalEvents } from "./components/auth/AuthModal";
 import { uiState } from "./state/uiStateManager";
 
 initTheme();
+
+const startDate = new Date(2020, 8);
+const currentDate = new Date();
+let yearsOfExperience = currentDate.getFullYear() - startDate.getFullYear();
+
+if (currentDate.getMonth() < startDate.getMonth()) {
+  yearsOfExperience--;
+}
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
@@ -26,7 +33,7 @@ if (app) {
         primaryCta: { label: "Login", href: "#login" },
         secondaryCta: { label: "View the collection", href: "#catalog" },
         stats: [
-          { value: "6yrs", label: "in the workshop" },
+          { value: `${yearsOfExperience}yrs`, label: "in the workshop" },
           { value: "1.5k", label: "pieces delivered" },
         ],
       },
@@ -72,14 +79,11 @@ if (app) {
     })
   );
 
-  // BAGO: I-mount ang Auth Modal sa pinakadulo ng body para iwas layout issues
   const authModalElement = createAuthModal();
   document.body.appendChild(authModalElement);
   
-  // BAGO: I-attach ang lahat ng form, close, at tab event listeners
   attachAuthModalEvents(authModalElement);
 
-  // BAGO: I-override ang default behavior ng Hero CTA "Login" button para buksan ang modal
   const heroLoginBtn = document.querySelector('a[href="#login"]');
   heroLoginBtn?.addEventListener('click', (e) => {
     e.preventDefault();
