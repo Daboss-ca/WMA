@@ -3,6 +3,8 @@ import { attachRippleToAll } from "./interactions";
 import * as THREE from "three";
 import gsap from "gsap";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { getCurrentUser } from "../state/sessionManager.js";
+import { uiState } from "../state/uiStateManager.js";
 import {
   createWmaMaterials,
   disposeWmaMaterials,
@@ -43,7 +45,11 @@ function renderHero(hero: HeroContent): string {
           <h1 class="hero__title">${hero.title}</h1>
           <p class="hero__lead">${hero.lead}</p>
           <div class="hero__actions">
-            <a class="btn btn--primary" href="${hero.primaryCta.href}">${hero.primaryCta.label}</a>
+            <a
+              class="btn btn--primary"
+              href="${hero.primaryCta.href}"
+              ${hero.primaryCta.href === "#login" ? 'data-auth-mode="login"' : ""}
+            >${hero.primaryCta.label}</a>
             ${
               hero.secondaryCta
                 ? `<a class="btn btn--outline" href="${hero.secondaryCta.href}">${hero.secondaryCta.label}</a>`
@@ -463,6 +469,13 @@ export function createCatalog(props: CatalogProps): HTMLElement {
 
   section.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
+
+    const inquiryLink = target.closest<HTMLAnchorElement>('.card__actions a[href="#contact"]');
+    if (inquiryLink && !getCurrentUser()) {
+      event.preventDefault();
+      uiState.openModal("login");
+      return;
+    }
     
     // Filter click handler
     const filterBtn = target.closest<HTMLButtonElement>(".filter-badge");

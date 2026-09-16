@@ -3,14 +3,18 @@ import { initTheme } from './utils/theme';
 import { createHeader } from "./layout/Header";
 import { createFooter } from "./layout/Footer";
 import { createCatalog } from "./layout/Catalog";
+import { createProcessSection } from "./layout/ProcessSection"; // BAGO: Import ProcessSection
 import { catalogItems } from "./data/furnitureData";
 
+// BAGO: I-import ang Auth Components at UI State Manager
 import { createAuthModal, attachAuthModalEvents } from "./components/auth/AuthModal";
+import { getCurrentUser } from "./state/sessionManager";
 import { uiState } from "./state/uiStateManager";
 
 initTheme();
 
-const startDate = new Date(2020, 8);
+// Dynamic computation para sa years in the workshop (Started September 2020)
+const startDate = new Date(2020, 8); // September (0-indexed)
 const currentDate = new Date();
 let yearsOfExperience = currentDate.getFullYear() - startDate.getFullYear();
 
@@ -25,6 +29,8 @@ if (app) {
 
   const main = document.createElement("main");
   main.className = "site-main";
+  
+  // BAGO: Append Catalog at ProcessSection sa loob ng main content
   main.append(
     createCatalog({
       hero: {
@@ -38,7 +44,8 @@ if (app) {
         ],
       },
       items: catalogItems,
-    })
+    }),
+    createProcessSection() // BAGO: I-render ang Our Process section
   );
 
   app.append(
@@ -79,14 +86,29 @@ if (app) {
     })
   );
 
+  // Auth Modal Setup
   const authModalElement = createAuthModal();
   document.body.appendChild(authModalElement);
-  
   attachAuthModalEvents(authModalElement);
 
+  // Override default behavior ng Hero CTA "Login" button
   const heroLoginBtn = document.querySelector('a[href="#login"]');
   heroLoginBtn?.addEventListener('click', (e) => {
     e.preventDefault();
     uiState.openModal('login');
+  });
+
+  document.addEventListener('wma:open-inquiry', (e) => {
+    e.preventDefault();
+
+    if (!getCurrentUser()) {
+      uiState.openModal('signup');
+      return;
+    }
+
+    document.querySelector('#contact')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
   });
 }

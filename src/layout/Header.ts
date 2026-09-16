@@ -116,14 +116,14 @@ export function updateHeaderUI(): void {
       updateHeaderUI();
     });
   } else {
-    // Guest State UI (Sign In CTA Button)
+    // Guest State UI (Sign Up CTA Button)
     authContainer.innerHTML = `
-      <button type="button" id="open-login-btn" class="btn btn--primary">Sign In</button>
+      <button type="button" id="open-signup-btn" class="btn btn--primary">Sign Up</button>
     `;
 
-    const openLoginBtn = document.getElementById("open-login-btn");
-    openLoginBtn?.addEventListener("click", () => {
-      uiState.openModal("login");
+    const openSignupBtn = document.getElementById("open-signup-btn");
+    openSignupBtn?.addEventListener("click", () => {
+      uiState.openModal("signup");
     });
   }
 }

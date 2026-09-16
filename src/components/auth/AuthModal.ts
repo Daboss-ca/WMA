@@ -57,6 +57,6 @@ export function attachAuthModalEvents(modalElement: HTMLElement): void {
   const loginTabBtn = modalElement.querySelector('#tab-login-btn');
   const signupTabBtn = modalElement.querySelector('#tab-signup-btn');
 
-  loginTabBtn?.addEventListener('click', () => uiState.switchTab('login'));
-  signupTabBtn?.addEventListener('click', () => uiState.switchTab('signup'));
+  loginTabBtn?.addEventListener('click', () => uiState.openModal('login'));
+  signupTabBtn?.addEventListener('click', () => uiState.openModal('signup'));
 }
