@@ -36,6 +36,7 @@ export function createFooter(props: FooterProps): HTMLElement {
 
   const footer = document.createElement("footer");
   footer.className = "site-footer";
+  footer.id = "contact";
 
   const renderLinkColumn = (title: string, links: FooterLink[]): string => `
     <div class="footer-col">

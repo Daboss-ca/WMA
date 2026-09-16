@@ -85,6 +85,60 @@ export function createHeader(props: HeaderProps): HTMLElement {
   initHeaderScrollEffect(header);
   attachRippleToAll(header);
 
+  const sectionIds = new Set(["catalog", "process", "contact"]);
+  const navLinkElements = Array.from(header.querySelectorAll<HTMLAnchorElement>(".site-nav__link"));
+
+  const setActiveNavLink = (sectionId: string): void => {
+    navLinkElements.forEach((link) => {
+      if (link.getAttribute("href") === `#${sectionId}`) {
+        link.setAttribute("aria-current", "page");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    });
+  };
+
+  header.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    const navLink = target.closest<HTMLAnchorElement>(".site-nav__link");
+    const sectionId = navLink?.getAttribute("href")?.slice(1);
+    const section = sectionId ? document.getElementById(sectionId) : null;
+
+    if (!navLink || !sectionId || !sectionIds.has(sectionId) || !section) return;
+
+    event.preventDefault();
+    setActiveNavLink(sectionId);
+    history.pushState(null, "", `#${sectionId}`);
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  requestAnimationFrame(() => {
+    const initialSectionId = sectionIds.has(window.location.hash.slice(1))
+      ? window.location.hash.slice(1)
+      : navLinkElements.find((link) => link.getAttribute("aria-current") === "page")?.getAttribute("href")?.slice(1);
+
+    if (initialSectionId) setActiveNavLink(initialSectionId);
+
+    const sections = Array.from(sectionIds)
+      .map((sectionId) => document.getElementById(sectionId))
+      .filter((section): section is HTMLElement => section !== null);
+
+    if (!sections.length || !("IntersectionObserver" in window)) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleSection = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((first, second) => second.intersectionRatio - first.intersectionRatio)[0];
+
+        if (visibleSection) setActiveNavLink(visibleSection.target.id);
+      },
+      { rootMargin: "-20% 0px -55% 0px", threshold: [0, 0.25, 0.5, 1] }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+  });
+
   // Initial render ng Auth buttons/avatar
   setTimeout(() => updateHeaderUI(), 0);
 

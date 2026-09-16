@@ -23,6 +23,18 @@ class UIStateManager {
     this.clearAlert();
   }
 
+  public openInquiryModal(category?: string): void {
+    document.dispatchEvent(
+      new CustomEvent('wma:open-inquiry-modal', {
+        detail: { category },
+      })
+    );
+  }
+
+  public closeInquiryModal(): void {
+    document.dispatchEvent(new CustomEvent('wma:close-inquiry-modal'));
+  }
+
   // Tab Switcher Logic ('login' <-> 'signup')
   public switchTab(mode: FormMode): void {
     this.activeMode = mode;

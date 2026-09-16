@@ -476,6 +476,12 @@ export function createCatalog(props: CatalogProps): HTMLElement {
       uiState.openModal("login");
       return;
     }
+
+    if (inquiryLink) {
+      event.preventDefault();
+      uiState.openInquiryModal(inquiryLink.closest<HTMLElement>(".card")?.dataset.category);
+      return;
+    }
     
     // Filter click handler
     const filterBtn = target.closest<HTMLButtonElement>(".filter-badge");

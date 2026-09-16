@@ -8,6 +8,7 @@ import { catalogItems } from "./data/furnitureData";
 
 // BAGO: I-import ang Auth Components at UI State Manager
 import { createAuthModal, attachAuthModalEvents } from "./components/auth/AuthModal";
+import { createInquiryModal } from "./components/inquiry/InquiryModal";
 import { getCurrentUser } from "./state/sessionManager";
 import { uiState } from "./state/uiStateManager";
 
@@ -91,6 +92,8 @@ if (app) {
   document.body.appendChild(authModalElement);
   attachAuthModalEvents(authModalElement);
 
+  document.body.appendChild(createInquiryModal());
+
   // Override default behavior ng Hero CTA "Login" button
   const heroLoginBtn = document.querySelector('a[href="#login"]');
   heroLoginBtn?.addEventListener('click', (e) => {
@@ -106,9 +109,6 @@ if (app) {
       return;
     }
 
-    document.querySelector('#contact')?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
+    uiState.openInquiryModal();
   });
 }
