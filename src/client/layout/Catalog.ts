@@ -1,5 +1,5 @@
 import type { FilterCategory, FurnitureItem } from "../types/furniture";
-import { attachRippleToAll } from "./interactions";
+import { attachRippleToAll } from "./interactions.js";
 import * as THREE from "three";
 import gsap from "gsap";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
@@ -14,7 +14,7 @@ import {
   disposeWmaGroup,
   type AssemblyPart,
   type WmaMaterials,
-} from "./Wmafurniture ";
+} from "./Wmafurniture .js";
 
 export interface HeroContent {
   eyebrow?: string;

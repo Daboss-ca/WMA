@@ -1,16 +1,16 @@
-import './styles/index.css';
-import { initTheme } from './utils/theme';
-import { createHeader } from "./layout/Header";
-import { createFooter } from "./layout/Footer";
-import { createCatalog } from "./layout/Catalog";
-import { createProcessSection } from "./layout/ProcessSection"; // BAGO: Import ProcessSection
-import { catalogItems } from "./data/furnitureData";
+import './src/client/styles/index.css';
+import { initTheme } from './src/client/utils/theme';
+import { createHeader } from "./src/client/layout/Header";
+import { createFooter } from "./src/client/layout/Footer";
+import { createCatalog } from "./src/client/layout/Catalog";
+import { createProcessSection } from "./src/client/layout/ProcessSection"; // BAGO: Import ProcessSection
+import { catalogItems } from "./src/client/data/furnitureData";
 
 // BAGO: I-import ang Auth Components at UI State Manager
-import { createAuthModal, attachAuthModalEvents } from "./components/auth/AuthModal";
-import { createInquiryModal } from "./components/inquiry/InquiryModal";
-import { getCurrentUser } from "./state/sessionManager";
-import { uiState } from "./state/uiStateManager";
+import { createAuthModal, attachAuthModalEvents } from "./src/client/components/auth/AuthModal";
+import { createInquiryModal } from "./src/client/components/inquiry/InquiryModal";
+import { getCurrentUser } from "./src/client/state/sessionManager";
+import { uiState } from "./src/client/state/uiStateManager";
 
 initTheme();
 

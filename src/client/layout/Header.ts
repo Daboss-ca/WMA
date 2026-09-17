@@ -4,7 +4,7 @@ import {
   initMobileNavToggle,
   initThemeToggle,
   attachRippleToAll,
-} from "./interactions";
+} from "./interactions.js";
 import { getCurrentUser, clearSession } from "../state/sessionManager.js";
 import { uiState } from "../state/uiStateManager.js";
 
