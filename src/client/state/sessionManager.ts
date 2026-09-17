@@ -2,6 +2,11 @@ import type { User } from '../types/auth/auth.types.js';
 
 const USERS_KEY = 'wma_registered_users';
 const ACTIVE_USER_KEY = 'wma_active_user';
+export const SESSION_CHANGED_EVENT = 'wma:session-changed';
+
+function notifySessionChanged(): void {
+  document.dispatchEvent(new CustomEvent(SESSION_CHANGED_EVENT));
+}
 
 // --- MOCK DATABASE (Users Collection) ---
 
@@ -39,8 +44,8 @@ export function getCurrentUser(): User | null {
 
 // I-set ang active session (Remember Me = localStorage, else = sessionStorage)
 export function setCurrentUser(user: User, rememberMe: boolean): void {
-  // Siguraduhing malinis muna ang parehong storage
-  clearSession();
+  localStorage.removeItem(ACTIVE_USER_KEY);
+  sessionStorage.removeItem(ACTIVE_USER_KEY);
 
   // Tanggalin ang password bago i-save sa session para sa security
   const sessionUser: User = {
@@ -55,12 +60,15 @@ export function setCurrentUser(user: User, rememberMe: boolean): void {
   } else {
     sessionStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(sessionUser));
   }
+
+  notifySessionChanged();
 }
 
 // Mag-logout (linisin ang active session)
 export function clearSession(): void {
   localStorage.removeItem(ACTIVE_USER_KEY);
   sessionStorage.removeItem(ACTIVE_USER_KEY);
+  notifySessionChanged();
 }
 
 // Helper function para malaman kung naka-log in ang bisita

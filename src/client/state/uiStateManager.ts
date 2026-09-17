@@ -35,6 +35,14 @@ class UIStateManager {
     document.dispatchEvent(new CustomEvent('wma:close-inquiry-modal'));
   }
 
+  public openProfile(): void {
+    document.dispatchEvent(new CustomEvent('wma:open-profile'));
+  }
+
+  public closeProfile(): void {
+    document.dispatchEvent(new CustomEvent('wma:close-profile'));
+  }
+
   // Tab Switcher Logic ('login' <-> 'signup')
   public switchTab(mode: FormMode): void {
     this.activeMode = mode;

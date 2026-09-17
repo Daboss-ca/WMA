@@ -2,7 +2,6 @@ import { validateEmail } from '../../validation/emailValidator.js';
 import { validatePassword } from '../../validation/passwordValidator.js';
 import { findUserByEmail, setCurrentUser } from '../../state/sessionManager.js';
 import { uiState } from '../../state/uiStateManager.js';
-import { updateHeaderUI } from '../../layout/Header.js';
 
 export function renderLoginForm(): string {
   return `
@@ -90,7 +89,6 @@ export function attachLoginFormEvents(): void {
 
       setTimeout(() => {
         uiState.closeModal();
-        updateHeaderUI();
       }, 1000);
     }, 1200);
   });

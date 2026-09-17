@@ -1,9 +1,10 @@
 import './src/client/styles/index.css';
 import { initTheme } from './src/client/utils/theme';
-import { createHeader } from "./src/client/layout/Header";
+import { createHeader, updateHeaderUI } from "./src/client/layout/Header";
 import { createFooter } from "./src/client/layout/Footer";
 import { createCatalog } from "./src/client/layout/Catalog";
 import { createProcessSection } from "./src/client/layout/ProcessSection"; // BAGO: Import ProcessSection
+import { createProfilePage } from "./src/client/layout/ProfilePage";
 import { catalogItems } from "./src/client/data/furnitureData";
 
 // BAGO: I-import ang Auth Components at UI State Manager
@@ -46,8 +47,25 @@ if (app) {
       },
       items: catalogItems,
     }),
-    createProcessSection() // BAGO: I-render ang Our Process section
+    createProcessSection(),
+    createProfilePage()
   );
+
+  const profilePage = main.querySelector<HTMLElement>("#profile-page");
+  const collectionSections = Array.from(main.children).filter(
+    (section): section is HTMLElement => section !== profilePage
+  );
+
+  document.addEventListener("wma:open-profile", () => {
+    collectionSections.forEach((section) => { section.hidden = true; });
+    if (profilePage) profilePage.hidden = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  document.addEventListener("wma:close-profile", () => {
+    if (profilePage) profilePage.hidden = true;
+    collectionSections.forEach((section) => { section.hidden = false; });
+  });
 
   app.append(
     createHeader({
@@ -86,6 +104,8 @@ if (app) {
       ],
     })
   );
+
+  updateHeaderUI();
 
   // Auth Modal Setup
   const authModalElement = createAuthModal();

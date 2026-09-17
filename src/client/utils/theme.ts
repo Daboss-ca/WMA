@@ -1,4 +1,5 @@
 export type Theme = 'light' | 'dark';
+import { isAuthenticated } from '../state/sessionManager.js';
 
 const THEME_KEY = 'wma_theme_preference';
 
@@ -6,6 +7,8 @@ const THEME_KEY = 'wma_theme_preference';
  * Gets the current active theme from localStorage or system preference.
  */
 export function getInitialTheme(): Theme {
+  if (!isAuthenticated()) return 'light';
+
   const savedTheme = localStorage.getItem(THEME_KEY) as Theme | null;
   if (savedTheme) {
     return savedTheme;
@@ -17,6 +20,8 @@ export function getInitialTheme(): Theme {
  * Applies the specified theme to the document root element.
  */
 export function applyTheme(theme: Theme): void {
+  if (!isAuthenticated()) theme = 'light';
+
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem(THEME_KEY, theme);
 }

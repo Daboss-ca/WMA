@@ -5,8 +5,9 @@ import {
   initThemeToggle,
   attachRippleToAll,
 } from "./interactions.js";
-import { getCurrentUser, clearSession } from "../state/sessionManager.js";
+import { getCurrentUser, clearSession, SESSION_CHANGED_EVENT } from "../state/sessionManager.js";
 import { uiState } from "../state/uiStateManager.js";
+import { applyTheme } from "../utils/theme.js";
 
 export interface NavLink {
   label: string;
@@ -62,10 +63,7 @@ export function createHeader(props: HeaderProps): HTMLElement {
             )
             .join("")}
         </ul>
-        <div class="site-nav__actions" id="header-actions" style="display: flex; align-items: center; gap: 0.75rem;">
-          <button type="button" class="btn btn--icon theme-toggle" id="theme-toggle-btn" aria-label="Toggle theme">
-          </button>
-          <!-- Dynamic Auth UI (Login CTA o User Profile) -->
+        <div class="site-nav__actions" id="header-actions">
           <div id="auth-actions-container"></div>
         </div>
       </nav>
@@ -75,11 +73,6 @@ export function createHeader(props: HeaderProps): HTMLElement {
   const toggleButton = header.querySelector<HTMLElement>(".nav-toggle");
   if (toggleButton) {
     initMobileNavToggle(header, toggleButton);
-  }
-
-  const themeBtn = header.querySelector<HTMLElement>("#theme-toggle-btn");
-  if (themeBtn) {
-    initThemeToggle(themeBtn);
   }
 
   initHeaderScrollEffect(header);
@@ -107,6 +100,7 @@ export function createHeader(props: HeaderProps): HTMLElement {
     if (!navLink || !sectionId || !sectionIds.has(sectionId) || !section) return;
 
     event.preventDefault();
+    uiState.closeProfile();
     setActiveNavLink(sectionId);
     history.pushState(null, "", `#${sectionId}`);
     section.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -139,13 +133,34 @@ export function createHeader(props: HeaderProps): HTMLElement {
     sections.forEach((section) => observer.observe(section));
   });
 
-  // Initial render ng Auth buttons/avatar
-  setTimeout(() => updateHeaderUI(), 0);
+  document.addEventListener(SESSION_CHANGED_EVENT, () => {
+    if (!getCurrentUser()) applyTheme("light");
+    updateHeaderUI();
+  });
+
+  document.addEventListener("click", (event) => {
+    const profileMenu = header.querySelector<HTMLElement>(".profile-menu");
+    const profilePanel = header.querySelector<HTMLElement>("#profile-menu-panel");
+    const profileTrigger = header.querySelector<HTMLButtonElement>("#profile-menu-trigger");
+    if (!profileMenu || !profilePanel || !profileTrigger || profileMenu.contains(event.target as Node)) return;
+    profilePanel.hidden = true;
+    profileTrigger.setAttribute("aria-expanded", "false");
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const profilePanel = header.querySelector<HTMLElement>("#profile-menu-panel");
+    const profileTrigger = header.querySelector<HTMLButtonElement>("#profile-menu-trigger");
+    if (profilePanel && profileTrigger) {
+      profilePanel.hidden = true;
+      profileTrigger.setAttribute("aria-expanded", "false");
+    }
+  });
 
   return header;
 }
 
-// BAGO: In-export na function para i-update ang Header depende sa Session State
+// Function para i-update ang Header depende sa Session State
 export function updateHeaderUI(): void {
   const authContainer = document.getElementById("auth-actions-container");
   if (!authContainer) return;
@@ -153,30 +168,83 @@ export function updateHeaderUI(): void {
   const currentUser = getCurrentUser();
 
   if (currentUser) {
-    // Logged-in State UI (Avatar/Name + Logout)
+    const initials = currentUser.fullName
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
     authContainer.innerHTML = `
-      <div class="user-profile-badge" style="display: flex; align-items: center; gap: 0.5rem;">
-        <span class="user-avatar" style="background: #2563eb; color: #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem;">
-          ${currentUser.fullName.charAt(0).toUpperCase()}
-        </span>
-        <span class="user-name" style="font-weight: 500; font-size: 0.9rem;">${currentUser.fullName}</span>
-        <button type="button" id="logout-btn" class="btn btn--outline" style="margin-left: 0.5rem; padding: 6px 12px; font-size: 0.85rem;">Logout</button>
+      <div class="header-authenticated-actions">
+        <button type="button" class="header-action-button" aria-label="View cart" title="Cart">
+          <span aria-hidden="true">&#128722;</span>
+        </button>
+        <button type="button" class="header-action-button" aria-label="View notifications" title="Notifications">
+          <span aria-hidden="true">&#128276;</span>
+        </button>
+        <div class="profile-menu">
+          <button type="button" class="profile-menu__trigger" id="profile-menu-trigger" aria-label="Open profile menu" aria-expanded="false" aria-controls="profile-menu-panel">
+            <span class="user-avatar" aria-hidden="true">${initials}</span>
+            <span class="profile-menu__name">${currentUser.fullName}</span>
+            <span class="profile-menu__chevron" aria-hidden="true">&#8964;</span>
+          </button>
+          <div class="profile-menu__panel" id="profile-menu-panel" hidden>
+            <div class="profile-menu__summary">
+              <strong>${currentUser.fullName}</strong>
+              <span>${currentUser.email}</span>
+            </div>
+            <button type="button" class="profile-menu__item" id="view-profile-btn">View / Edit Profile</button>
+            <button type="button" class="profile-menu__item" id="settings-btn">Settings</button>
+            <div class="profile-menu__display">
+              <span>Display &amp; Accessibility</span>
+              <button type="button" class="btn btn--icon theme-toggle" id="theme-toggle-btn" aria-label="Toggle theme"></button>
+            </div>
+            <button type="button" class="profile-menu__item profile-menu__item--danger" id="logout-btn">Log Out</button>
+          </div>
+        </div>
       </div>
     `;
 
-    const logoutBtn = document.getElementById("logout-btn");
+    const profileTrigger = authContainer.querySelector<HTMLButtonElement>("#profile-menu-trigger");
+    const profilePanel = authContainer.querySelector<HTMLElement>("#profile-menu-panel");
+    const closeProfileMenu = (): void => {
+      if (!profilePanel || !profileTrigger) return;
+      profilePanel.hidden = true;
+      profileTrigger.setAttribute("aria-expanded", "false");
+    };
+
+    profileTrigger?.addEventListener("click", () => {
+      if (!profilePanel) return;
+      profilePanel.hidden = !profilePanel.hidden;
+      profileTrigger.setAttribute("aria-expanded", String(!profilePanel.hidden));
+    });
+
+    authContainer.querySelector("#view-profile-btn")?.addEventListener("click", () => {
+      closeProfileMenu();
+      uiState.openProfile();
+    });
+    authContainer.querySelector("#settings-btn")?.addEventListener("click", () => {
+      closeProfileMenu();
+      uiState.openProfile();
+    });
+
+    const themeBtn = authContainer.querySelector<HTMLElement>("#theme-toggle-btn");
+    if (themeBtn) initThemeToggle(themeBtn);
+
+    const logoutBtn = authContainer.querySelector("#logout-btn");
     logoutBtn?.addEventListener("click", () => {
       clearSession();
-      updateHeaderUI();
+      uiState.closeProfile();
     });
   } else {
-    // Guest State UI (Sign Up CTA Button)
     authContainer.innerHTML = `
-      <button type="button" id="open-signup-btn" class="btn btn--primary">Sign Up</button>
+      <button type="button" class="btn btn--primary" id="header-signup-btn">Sign Up</button>
     `;
 
-    const openSignupBtn = document.getElementById("open-signup-btn");
-    openSignupBtn?.addEventListener("click", () => {
+    // Direct scope lookup inside authContainer for immediate listener attachment
+    const signUpBtn = authContainer.querySelector("#header-signup-btn");
+    signUpBtn?.addEventListener("click", () => {
       uiState.openModal("signup");
     });
   }
