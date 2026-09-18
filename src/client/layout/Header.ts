@@ -160,7 +160,6 @@ export function createHeader(props: HeaderProps): HTMLElement {
   return header;
 }
 
-// Function para i-update ang Header depende sa Session State
 export function updateHeaderUI(): void {
   const authContainer = document.getElementById("auth-actions-container");
   if (!authContainer) return;
@@ -178,10 +177,19 @@ export function updateHeaderUI(): void {
     authContainer.innerHTML = `
       <div class="header-authenticated-actions">
         <button type="button" class="header-action-button" aria-label="View cart" title="Cart">
-          <span aria-hidden="true">&#128722;</span>
+          <svg class="header-action-button__icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <circle cx="8" cy="21" r="1"></circle>
+            <circle cx="19" cy="21" r="1"></circle>
+            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
+          </svg>
+          <span class="header-action-button__badge" data-badge="count" aria-hidden="true" hidden></span>
         </button>
         <button type="button" class="header-action-button" aria-label="View notifications" title="Notifications">
-          <span aria-hidden="true">&#128276;</span>
+          <svg class="header-action-button__icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
+          </svg>
+          <span class="header-action-button__badge header-action-button__badge--dot" data-badge="dot" aria-hidden="true" hidden></span>
         </button>
         <div class="profile-menu">
           <button type="button" class="profile-menu__trigger" id="profile-menu-trigger" aria-label="Open profile menu" aria-expanded="false" aria-controls="profile-menu-panel">
@@ -242,7 +250,6 @@ export function updateHeaderUI(): void {
       <button type="button" class="btn btn--primary" id="header-signup-btn">Sign Up</button>
     `;
 
-    // Direct scope lookup inside authContainer for immediate listener attachment
     const signUpBtn = authContainer.querySelector("#header-signup-btn");
     signUpBtn?.addEventListener("click", () => {
       uiState.openModal("signup");
