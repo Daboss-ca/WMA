@@ -3,20 +3,19 @@ import { initTheme } from './src/client/utils/theme';
 import { createHeader, updateHeaderUI } from "./src/client/layout/Header";
 import { createFooter } from "./src/client/layout/Footer";
 import { createCatalog } from "./src/client/layout/Catalog";
-import { createProcessSection } from "./src/client/layout/ProcessSection"; // BAGO: Import ProcessSection
+import { createProcessSection } from "./src/client/layout/ProcessSection"; 
 import { createProfilePage } from "./src/client/layout/ProfilePage";
 import { catalogItems } from "./src/client/data/furnitureData";
 
-// BAGO: I-import ang Auth Components at UI State Manager
 import { createAuthModal, attachAuthModalEvents } from "./src/client/components/auth/AuthModal";
 import { createInquiryModal } from "./src/client/components/inquiry/InquiryModal";
-import { getCurrentUser } from "./src/client/state/sessionManager";
+import { getCurrentUser, SESSION_CHANGED_EVENT } from "./src/client/state/sessionManager";
 import { uiState } from "./src/client/state/uiStateManager";
 
 initTheme();
 
-// Dynamic computation para sa years in the workshop (Started September 2020)
-const startDate = new Date(2020, 8); // September (0-indexed)
+// Dynamic computation para sa years in the workshop
+const startDate = new Date(2020, 8); 
 const currentDate = new Date();
 let yearsOfExperience = currentDate.getFullYear() - startDate.getFullYear();
 
@@ -26,20 +25,21 @@ if (currentDate.getMonth() < startDate.getMonth()) {
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
-if (app) {
+function renderApp() {
+  if (!app) return;
   app.innerHTML = "";
 
   const main = document.createElement("main");
   main.className = "site-main";
   
-  // BAGO: Append Catalog at ProcessSection sa loob ng main content
+  // DITO NA NAKALAGAY YUNG "Start a project" bilang nag-iisang button sa taas
   main.append(
     createCatalog({
       hero: {
         title: "YOU BRING THE PRODUCT, WE'LL BUILD THE KIOSK",
         lead: "WMA Wood Craft designs and builds solid-wood tables, cabinets, and custom pieces for homes and small businesses across the region.",
-        primaryCta: { label: "Login", href: "#login" },
-        secondaryCta: { label: "View the collection", href: "#catalog" },
+        primaryCta: { label: "Inquire Now", href: "#inquiry" }, 
+        secondaryCta: undefined, 
         stats: [
           { value: `${yearsOfExperience}yrs`, label: "in the workshop" },
           { value: "1.5k", label: "pieces delivered" },
@@ -47,7 +47,7 @@ if (app) {
       },
       items: catalogItems,
     }),
-    createProcessSection(),
+    createProcessSection(), 
     createProfilePage()
   );
 
@@ -107,28 +107,38 @@ if (app) {
 
   updateHeaderUI();
 
-  // Auth Modal Setup
-  const authModalElement = createAuthModal();
-  document.body.appendChild(authModalElement);
-  attachAuthModalEvents(authModalElement);
-
-  document.body.appendChild(createInquiryModal());
-
-  // Override default behavior ng Hero CTA "Login" button
-  const heroLoginBtn = document.querySelector('a[href="#login"]');
-  heroLoginBtn?.addEventListener('click', (e) => {
+  // Simple event listener para sa nag-iisang Start a Project button
+  const heroStartProjectBtn = document.querySelector('a[href="#inquiry"]');
+  heroStartProjectBtn?.addEventListener('click', (e) => {
     e.preventDefault();
-    uiState.openModal('login');
-  });
-
-  document.addEventListener('wma:open-inquiry', (e) => {
-    e.preventDefault();
-
     if (!getCurrentUser()) {
       uiState.openModal('signup');
       return;
     }
-
     uiState.openInquiryModal();
   });
 }
+
+// Initial render
+renderApp();
+
+// Mag-re-render o mag-update kapag nagbago ang session (Login / Logout)
+document.addEventListener(SESSION_CHANGED_EVENT, () => {
+  renderApp();
+});
+
+// Modals Setup (Isang beses lang i-append sa body para hindi mag-duplicate)
+const authModalElement = createAuthModal();
+document.body.appendChild(authModalElement);
+attachAuthModalEvents(authModalElement);
+
+document.body.appendChild(createInquiryModal());
+
+document.addEventListener('wma:open-inquiry', (e) => {
+  e.preventDefault();
+  if (!getCurrentUser()) {
+    uiState.openModal('signup');
+    return;
+  }
+  uiState.openInquiryModal();
+});

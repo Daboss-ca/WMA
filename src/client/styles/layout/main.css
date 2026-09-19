@@ -86,8 +86,25 @@
 .hero__actions {
   display: flex;
   flex-wrap: wrap;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
   gap: var(--space-4);
   margin-bottom: var(--space-7);
+}
+
+/* BAGO: Idinagdag ang eksaktong styling mula sa lumang Process CTA papunta sa Hero button */
+.hero__actions a[href="#inquiry"],
+.hero__actions button {
+  background: linear-gradient(135deg, #d4af37, #ffab5e) !important;
+  color: #201400 !important;
+  border: none !important;
+  box-shadow: 0 6px 20px -6px color-mix(in srgb, #ffab5e 55%, transparent) !important;
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.hero__actions a[href="#inquiry"]:hover,
+.hero__actions button:hover {
+  filter: brightness(1.06);
 }
 
 .hero__stats {

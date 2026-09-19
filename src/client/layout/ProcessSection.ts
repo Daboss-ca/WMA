@@ -86,34 +86,6 @@ function buildHeader(): HTMLElement {
   return header;
 }
 
-function buildCta(): HTMLElement {
-  const cta = document.createElement('div');
-  cta.className = 'process-cta';
-  cta.innerHTML = `
-    <div class="process-cta__text">
-      <h3>Ready to start your build?</h3>
-      <p>Tell us what you're picturing \u2014 we'll take it from sketch to finished piece.</p>
-    </div>
-    <button type="button" class="btn btn--accent process-cta__btn" id="process-cta-btn">
-      Start a Project
-    </button>
-  `;
-
-  const button = cta.querySelector<HTMLButtonElement>('#process-cta-btn');
-  button?.addEventListener('click', () => {
-
-    const notCancelled = document.dispatchEvent(
-      new CustomEvent('wma:open-inquiry', { cancelable: true })
-    );
-
-    if (notCancelled) {
-      document.querySelector('#contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  });
-
-  return cta;
-}
-
 function observeReveal(root: HTMLElement): void {
   const steps = root.querySelectorAll<HTMLElement>('.process-step');
 
@@ -150,7 +122,8 @@ export function createProcessSection(): HTMLElement {
 
   section.appendChild(buildHeader());
   section.appendChild(grid);
-  section.appendChild(buildCta());
+  
+  // Tinanggal na natin ang section.appendChild(buildCta()); dito.
 
   requestAnimationFrame(() => observeReveal(section));
 
