@@ -1,0 +1,453 @@
+/* ==========================================================================
+   Orders page
+   Same visual language as the dashboard: hairline rules, an amber underline
+   for "where you are", and warm wood tones. Colour comes from theme tokens, so
+   light and dark follow the site. Every selector matches the existing markup;
+   no extra classes are required in OrdersPage.ts.
+   ========================================================================== */
+
+.orders-page {
+  --ord-line: color-mix(in srgb, var(--color-border) 75%, transparent);
+  --ord-tint: color-mix(in srgb, var(--accent-primary) 9%, transparent);
+  --ord-tint-strong: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+  --ord-focus: 2px solid var(--accent-primary);
+
+  /* Status hues are mid-tones. Badge text mixes the hue with --text-main,
+     so it darkens in light mode and lightens in dark mode with no overrides. */
+  --status-pay: #c4920f;
+  --status-ship: #3b7fc4;
+  --status-receive: #3f9a63;
+  --status-review: #8a63b0;
+
+  min-height: 70vh;
+  background:
+    radial-gradient(56rem 26rem at 0% 0%, color-mix(in srgb, var(--accent-soft) 70%, transparent), transparent 70%),
+    var(--bg-page);
+}
+
+.orders-page__inner {
+  padding-block: clamp(1.75rem, 4vw, 3rem) clamp(3rem, 7vw, 5rem);
+}
+
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
+
+.orders-header { margin-bottom: var(--space-5); }
+
+.orders-page .btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3) calc(-1 * var(--space-2));
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-200);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.orders-page .btn-back:hover {
+  background: var(--ord-tint);
+  color: var(--accent-primary);
+}
+
+.orders-page .btn-back:focus-visible { outline: var(--ord-focus); outline-offset: 2px; }
+
+.orders-title {
+  margin: 0;
+  color: var(--text-main);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.6vw, 2.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+/* --------------------------------------------------------------------------
+   Status tabs
+   Underline draws in from the centre. Styled off .is-active as well as the
+   ARIA state, so it works whichever your markup keeps.
+   -------------------------------------------------------------------------- */
+
+.orders-tabs {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-6);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--ord-line);
+  scrollbar-width: none;
+}
+
+.orders-tabs::-webkit-scrollbar { display: none; }
+
+.orders-tab {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 0.85rem 1rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-200);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.orders-tab::after {
+  content: "";
+  position: absolute;
+  inset: auto 1rem -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent-primary);
+  opacity: 0;
+  transform: scaleX(0.4);
+  transition:
+    opacity var(--duration-fast) var(--ease-standard),
+    transform var(--duration-base, 0.25s) var(--ease-standard);
+}
+
+.orders-tab:hover { color: var(--text-main); }
+
+.orders-tab:hover::after {
+  opacity: 0.35;
+  transform: scaleX(1);
+}
+
+.orders-tab.is-active,
+.orders-tab[aria-pressed="true"],
+.orders-tab[aria-selected="true"] { color: var(--text-main); }
+
+.orders-tab.is-active::after,
+.orders-tab[aria-pressed="true"]::after,
+.orders-tab[aria-selected="true"]::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.orders-tab:focus-visible {
+  outline: var(--ord-focus);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Order list + cards
+   -------------------------------------------------------------------------- */
+
+.orders-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr));
+  gap: var(--space-5);
+}
+
+.order-card {
+  --media: clamp(5.5rem, 14vw, 7.5rem);
+
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.order-card:focus-within { border-color: color-mix(in srgb, var(--accent-primary) 55%, var(--color-border)); }
+
+.order-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--ord-line);
+  background: color-mix(in srgb, var(--accent-soft) 40%, transparent);
+}
+
+.order-card__header > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--space-3);
+  min-width: 0;
+}
+
+.order-card__number {
+  color: var(--text-main);
+  font-size: var(--fs-200);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.order-card__date {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+}
+
+/* Status badges: tinted fill, matching hairline, dot, and a text colour that adapts to the theme. */
+.order-badge {
+  --badge-hue: var(--text-muted);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--badge-hue) 34%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--badge-hue) 14%, transparent);
+  color: color-mix(in srgb, var(--badge-hue) 55%, var(--text-main));
+  font-size: var(--fs-100);
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.order-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--badge-hue);
+}
+
+.order-badge--pay { --badge-hue: var(--status-pay); }
+.order-badge--ship { --badge-hue: var(--status-ship); }
+.order-badge--receive { --badge-hue: var(--status-receive); }
+.order-badge--review { --badge-hue: var(--status-review); }
+
+.order-card__body {
+  display: grid;
+  grid-template-columns: var(--media) minmax(0, 1fr);
+  gap: var(--space-5);
+  padding: var(--space-5);
+}
+
+.order-card__media {
+  width: var(--media);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+}
+
+.order-card__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* No photo yet: a plank of faint, uneven grain with the category set on it. */
+.order-card__placeholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  padding: var(--space-2);
+  place-items: center;
+  background:
+    repeating-linear-gradient(88deg, transparent 0 6px, color-mix(in srgb, var(--accent-primary) 8%, transparent) 6px 7px),
+    repeating-linear-gradient(92deg, transparent 0 11px, color-mix(in srgb, var(--accent-primary) 6%, transparent) 11px 13px),
+    linear-gradient(135deg, var(--accent-soft), color-mix(in srgb, var(--accent-primary) 18%, var(--accent-soft)));
+  color: color-mix(in srgb, var(--accent-primary) 45%, var(--text-main));
+  font-family: var(--font-display);
+  font-size: var(--fs-200);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.order-card__info {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.order-card__title {
+  margin: 0;
+  color: var(--text-main);
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+
+.order-card__meta {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-200);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* Optional hook: <span class="order-card__meta-label">Dimensions</span> */
+.order-card__meta-label {
+  margin-right: var(--space-2);
+  font-weight: 600;
+}
+
+/* Pinned to the bottom of the row so price lines up with the foot of the image. */
+.order-card__price {
+  margin: auto 0 0;
+  padding-top: var(--space-2);
+  color: var(--text-main);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2.6vw, 1.6rem);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.order-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--ord-line);
+}
+
+.order-card__footer .btn:focus-visible { outline: var(--ord-focus); outline-offset: 2px; }
+
+/* Paying is the one action that unblocks everything else, so it gets the filled treatment.
+   The extra .btn keeps this ahead of global button variants, hover included. */
+.order-card__footer .btn[data-order-action="pay"] {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+.order-card__footer .btn[data-order-action="pay"]:hover {
+  border-color: color-mix(in srgb, var(--accent-primary) 85%, var(--text-main));
+  background: color-mix(in srgb, var(--accent-primary) 85%, var(--text-main));
+  color: var(--text-inverse);
+}
+
+/* --------------------------------------------------------------------------
+   Empty state
+   -------------------------------------------------------------------------- */
+
+.orders-empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: clamp(2.5rem, 8vw, 5rem) var(--space-5);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: radial-gradient(28rem 14rem at 50% 0%, var(--ord-tint), transparent 70%);
+  text-align: center;
+}
+
+/* Parcel icon on a soft amber disc, drawn in CSS so the markup stays as is. */
+.orders-empty::before {
+  content: "";
+  width: 72px;
+  height: 72px;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background-color: var(--accent-soft);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c4873a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3 3.5 7.5v9L12 21l8.5-4.5v-9L12 3Z'/%3E%3Cpath d='m3.5 7.5 8.5 4.5 8.5-4.5M12 12v9'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 34px;
+  box-shadow: 0 0 0 8px var(--ord-tint);
+}
+
+.orders-empty__title {
+  margin: var(--space-2) 0 0;
+  color: var(--text-main);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 3vw, 1.6rem);
+  font-weight: 600;
+}
+
+.orders-empty__desc {
+  max-width: 30rem;
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* Filled, roomy, amber: it's the only thing to do on this screen.
+   .btn.orders-empty__cta outranks the global .btn--outline rules, hover included. */
+.orders-page .orders-empty__cta.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  margin-top: var(--space-4);
+  padding-inline: 2rem;
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-pill);
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 6px 18px -8px var(--accent-primary);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.orders-page .orders-empty__cta.btn:hover {
+  border-color: color-mix(in srgb, var(--accent-primary) 85%, var(--text-main));
+  background: color-mix(in srgb, var(--accent-primary) 85%, var(--text-main));
+  color: var(--text-inverse);
+  box-shadow: 0 10px 24px -10px var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.orders-page .orders-empty__cta.btn:focus-visible { outline: var(--ord-focus); outline-offset: 3px; }
+
+/* --------------------------------------------------------------------------
+   Motion: the active tab's underline draws in each time the tab row re-renders
+   (your page rebuilds its HTML on tab change, so CSS transitions can't run between tabs).
+   -------------------------------------------------------------------------- */
+
+@keyframes orders-underline-in {
+  from { opacity: 0; transform: scaleX(0.2); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .orders-tab.is-active::after,
+  .orders-tab[aria-pressed="true"]::after,
+  .orders-tab[aria-selected="true"]::after { animation: orders-underline-in 280ms var(--ease-standard) both; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orders-tab::after,
+  .orders-page .orders-empty__cta.btn { transition: none; }
+  .orders-page .orders-empty__cta.btn:hover { transform: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 560px) {
+  .orders-tab { padding-inline: 0.75rem; }
+  .orders-tab::after { inset-inline: 0.75rem; }
+
+  .order-card__header,
+  .order-card__body,
+  .order-card__footer { padding-inline: var(--space-4); }
+
+  .order-card__body { gap: var(--space-4); }
+
+  .order-card__footer .btn { width: 100%; justify-content: center; }
+
+  .orders-page .orders-empty__cta.btn { width: 100%; max-width: 20rem; }
+}

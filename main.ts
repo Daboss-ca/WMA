@@ -4,6 +4,8 @@ import { createHeader, updateHeaderUI } from "./src/client/layout/Header";
 import { createFooter } from "./src/client/layout/Footer";
 import { createLandingPage } from "./src/client/layout/LandingPage";
 import { createDashboardPage } from "./src/client/layout/DashboardPage";
+// BAGO: I-import ang OrdersPage para magamit sa routing
+import { createOrdersPage, type OrderStatusTab } from "./src/client/components/order/OrdersPage";
 
 import { createAuthModal, attachAuthModalEvents } from "./src/client/components/auth/AuthModal";
 import { createInquiryModal } from "./src/client/components/inquiry/InquiryModal";
@@ -98,4 +100,46 @@ document.addEventListener('wma:open-inquiry', (e) => {
     return;
   }
   uiState.openInquiryModal();
+});
+
+
+// BAGO: Event Listeners para sa routing at view-switching ng Orders Page
+let activeOrdersPage: HTMLElement | null = null;
+
+document.addEventListener("wma:open-orders", (event) => {
+  const customEvent = event as CustomEvent<{ status?: OrderStatusTab }>;
+  const targetStatus = customEvent.detail?.status ?? "all";
+
+  // I-hide muna ang Dashboard
+  const dashboardPage = document.querySelector("#dashboard");
+  if (dashboardPage) (dashboardPage as HTMLElement).hidden = true;
+
+  // Tanggalin ang lumang orders page instance kung mayroon man
+  activeOrdersPage?.remove();
+
+  // Gumawa ng bago at isingit sa loob ng #app, sa ibabaw ng footer
+  const appContainer = document.querySelector("#app");
+  if (appContainer) {
+    activeOrdersPage = createOrdersPage(targetStatus);
+    const footer = appContainer.querySelector("footer");
+    
+    if (footer) {
+      appContainer.insertBefore(activeOrdersPage, footer);
+    } else {
+      appContainer.appendChild(activeOrdersPage);
+    }
+    
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+});
+
+document.addEventListener("wma:close-orders", () => {
+  // Tanggalin ang Orders Page
+  activeOrdersPage?.remove();
+  activeOrdersPage = null;
+
+  // Ipakita ulit ang Dashboard
+  const dashboardPage = document.querySelector("#dashboard");
+  if (dashboardPage) (dashboardPage as HTMLElement).hidden = false;
+  window.scrollTo({ top: 0, behavior: "smooth" });
 });

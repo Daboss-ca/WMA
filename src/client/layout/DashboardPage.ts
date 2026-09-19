@@ -1,22 +1,14 @@
 import { getCurrentUser } from "../state/sessionManager.js";
-import { uiState } from "../state/uiStateManager.js";
 import { catalogItems } from "../data/furnitureData.js";
 import { createCatalogProductFeed } from "./Catalog.js";
 
 type CatalogItem = (typeof catalogItems)[number];
-type StageState = "complete" | "active" | "upcoming";
 
 interface OrderStatus {
   id: string;
   label: string;
   count: number;
   icon: string;
-}
-
-interface ProjectStage {
-  title: string;
-  note: string;
-  state: StageState;
 }
 
 interface CategoryFilter {
@@ -64,20 +56,6 @@ const ORDER_STATUSES: readonly OrderStatus[] = [
   },
 ];
 
-const CHECK_ICON = `<svg ${ICON_ATTRS}><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`;
-
-const ACTIVE_PROJECT: { name: string; status: string; nextStep: string; stages: readonly ProjectStage[] } = {
-  name: "Oak display kiosk",
-  status: "In progress",
-  nextStep: "Review your 3D preview so we can start crafting.",
-  stages: [
-    { title: "Consultation", note: "Complete", state: "complete" },
-    { title: "3D Preview", note: "Needs your review", state: "active" },
-    { title: "Crafting", note: "Up next", state: "upcoming" },
-    { title: "Delivery", note: "Coming soon", state: "upcoming" },
-  ],
-};
-
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, (character) => ({
     "&": "&amp;",
@@ -111,25 +89,6 @@ function renderOrderStatus(status: OrderStatus): string {
     </button>`;
 }
 
-function renderStage(stage: ProjectStage, index: number): string {
-  const node = stage.state === "complete" ? CHECK_ICON : String(index + 1);
-  const current = stage.state === "active" ? ' aria-current="step"' : "";
-  return `
-    <li class="project-tracker__stage project-tracker__stage--${stage.state}"${current}>
-      <span class="project-tracker__node" aria-hidden="true">${node}</span>
-      <strong>${escapeHtml(stage.title)}</strong>
-      <small>${escapeHtml(stage.note)}</small>
-    </li>`;
-}
-
-function getTrackerProgress(stages: readonly ProjectStage[]): number {
-  let reached = 0;
-  stages.forEach((stage, index) => {
-    if (stage.state !== "upcoming") reached = index;
-  });
-  return stages.length > 1 ? reached / (stages.length - 1) : 0;
-}
-
 function renderFilters(): string {
   const filters = [
     { id: ALL_FILTER_ID, label: "All", count: catalogItems.length },
@@ -142,7 +101,6 @@ function renderFilters(): string {
 
   if (filters.length <= 1) return "";
 
-  // BAGO: Inayos ang HTML structure ng filter buttons para tumugma sa reference image at maiwasan ang duplication
   const chips = filters
     .map(
       (filter) => `
@@ -164,8 +122,7 @@ export function createDashboardPage(): HTMLElement {
   if (!user) return page;
 
   const firstName = user.fullName.trim().split(/\s+/)[0] || user.fullName;
-  
-  // BAGO: Inayos ang pagkakasunod-sunod. Inilipat ang renderFilters() sa ibaba ng pamagat para hindi na maging duplicate sa header layout.
+
   page.innerHTML = `
     <div class="wrap dashboard-page__inner">
       <section class="dashboard-welcome" aria-labelledby="dashboard-title">
@@ -183,32 +140,11 @@ export function createDashboardPage(): HTMLElement {
         </nav>
       </section>
 
-      <section class="dashboard-project" id="project-tracker" aria-labelledby="tracker-title">
-        <div class="dashboard-project__header">
-          <div>
-            <p class="dashboard-project__label">Active project</p>
-            <h2 id="tracker-title">${escapeHtml(ACTIVE_PROJECT.name)}</h2>
-          </div>
-          <span class="dashboard-status">${escapeHtml(ACTIVE_PROJECT.status)}</span>
-        </div>
-        <div class="project-tracker">
-          <div class="project-tracker__line" aria-hidden="true"><span></span></div>
-          <ol class="project-tracker__stages" aria-label="Project progress">
-            ${ACTIVE_PROJECT.stages.map(renderStage).join("")}
-          </ol>
-        </div>
-        <div class="dashboard-project__footer">
-          <p>${escapeHtml(ACTIVE_PROJECT.nextStep)}</p>
-          <button type="button" class="btn btn--outline dashboard-tracker__action" data-dashboard-action="inquiry">View project details</button>
-        </div>
-      </section>
-
       <section class="dashboard-catalog" aria-labelledby="catalog-title">
         <div class="dashboard-catalog__header">
           <h2 id="catalog-title">EXPLORE THE CATALOG</h2>
         </div>
         
-        <!-- BAGO: Ang nag-iisang filter bar row, inilipat sa ibaba ng title -->
         <div class="dashboard-catalog__filter-container">
            ${renderFilters()}
         </div>
@@ -218,10 +154,6 @@ export function createDashboardPage(): HTMLElement {
       </section>
     </div>
   `;
-
-  page
-    .querySelector<HTMLElement>(".project-tracker")
-    ?.style.setProperty("--tracker-progress", getTrackerProgress(ACTIVE_PROJECT.stages).toFixed(3));
 
   const feedMount = page.querySelector<HTMLElement>("#dashboard-product-feed");
   const filterBar = page.querySelector<HTMLElement>("[data-filter-bar]");
@@ -257,7 +189,6 @@ export function createDashboardPage(): HTMLElement {
 
     activeFilter = nextFilter;
     
-    // Update UI para sa active button
     filterBar.querySelectorAll<HTMLButtonElement>("[data-filter]").forEach((chip) => {
       const isSelected = chip === button;
       chip.setAttribute("aria-pressed", String(isSelected));
@@ -272,9 +203,13 @@ export function createDashboardPage(): HTMLElement {
     renderFeed(true);
   });
 
-  page.querySelectorAll<HTMLElement>("[data-dashboard-action]").forEach((action) => {
-    action.addEventListener("click", () => {
-      if (action.dataset.dashboardAction === "inquiry") uiState.openInquiryModal();
+  // BAGO: Event listener para buksan ang bagong Orders Page mula sa dashboard
+  page.querySelectorAll<HTMLButtonElement>("[data-order-status]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const status = button.dataset.orderStatus;
+      document.dispatchEvent(
+        new CustomEvent("wma:open-orders", { detail: { status } })
+      );
     });
   });
 
