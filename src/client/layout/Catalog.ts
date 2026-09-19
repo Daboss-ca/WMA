@@ -142,70 +142,31 @@ function renderCard(item: FurnitureItem, index: number): string {
   `;
 }
 
+// BAGO: Nilinis ang function na ito. Tinanggal na ang header/filters dahil nasa DashboardPage.ts na ito.
 export function createCatalogProductFeed(items: FurnitureItem[]): HTMLElement {
-  const section = document.createElement("section");
+  const section = document.createElement("div");
   section.className = "dashboard-product-feed";
-  section.id = "dashboard-catalog";
-  section.setAttribute("aria-labelledby", "dashboard-catalog-title");
+  section.id = "dashboard-catalog-grid";
 
   section.innerHTML = `
-    <div class="dashboard-section__heading">
-      <div>
-        <p class="dashboard-eyebrow">Curated for your next project</p>
-        <h2 id="dashboard-catalog-title">You might also like</h2>
-      </div>
-      <a class="dashboard-feed__link" href="#catalog">View all</a>
-    </div>
-    ${renderFilterBar(defaultFilters)}
     <div class="catalog-grid">
       ${items.slice(0, 6).map(renderCard).join("")}
     </div>
-    <p class="catalog-empty" hidden>No pieces match that category yet — try another filter.</p>
   `;
 
-  const grid = section.querySelector<HTMLElement>(".catalog-grid");
-  const emptyState = section.querySelector<HTMLElement>(".catalog-empty");
-  const filterButtons = Array.from(section.querySelectorAll<HTMLButtonElement>(".filter-badge"));
-  let currentCategory: FilterCategory = "All";
-
-  const updateGridUI = (): void => {
-    const cards = Array.from(section.querySelectorAll<HTMLElement>(".card"));
-    let matchingCards = 0;
-
-    cards.forEach((card) => {
-      const isMatch = currentCategory === "All" || card.dataset.category === currentCategory;
-      card.hidden = !isMatch;
-      if (isMatch) matchingCards++;
-    });
-
-    if (grid) grid.hidden = matchingCards === 0;
-    if (emptyState) emptyState.hidden = matchingCards !== 0;
-  };
-
-  updateGridUI();
-
+  // Event listener para lang sa "Inquire" button ng mga cards
   section.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
-    const filterButton = target.closest<HTMLButtonElement>(".filter-badge");
-    if (filterButton) {
-      currentCategory = filterButton.dataset.filter as FilterCategory;
-      filterButtons.forEach((button) => {
-        button.setAttribute("aria-pressed", String(button === filterButton));
-      });
-      updateGridUI();
-      return;
-    }
-
     const inquiryLink = target.closest<HTMLAnchorElement>('.card__actions a[href="#contact"]');
-    if (!inquiryLink) return;
-
-    event.preventDefault();
-    if (!getCurrentUser()) {
-      uiState.openModal("login");
-      return;
+    
+    if (inquiryLink) {
+      event.preventDefault();
+      if (!getCurrentUser()) {
+        uiState.openModal("login");
+        return;
+      }
+      uiState.openInquiryModal(inquiryLink.closest<HTMLElement>(".card")?.dataset.category);
     }
-
-    uiState.openInquiryModal(inquiryLink.closest<HTMLElement>(".card")?.dataset.category);
   });
 
   attachRippleToAll(section);
@@ -451,8 +412,7 @@ function createAssemblyScene(container: HTMLElement): AssemblyScene {
 export function createCatalog(props: CatalogProps): HTMLElement {
   const { hero, items, filters = defaultFilters } = props;
 
-  // BAGO: I-shuffle ang items array (Fisher-Yates) para random ang unang order sa HTML
-  // Maiiwasan nito na mapuno ng iisang category (ex. Kiosks) ang first 6 items.
+  // I-shuffle ang items array (Fisher-Yates) para random ang unang order sa HTML
   const shuffledItems = [...items];
   for (let i = shuffledItems.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -497,7 +457,6 @@ export function createCatalog(props: CatalogProps): HTMLElement {
   const filterButtons = Array.from(section.querySelectorAll<HTMLButtonElement>(".filter-badge"));
   const viewMoreBtn = section.querySelector<HTMLButtonElement>("#view-more-btn");
 
-  // BAGO: Pinalitan ang boolean isExpanded ng number visibleLimit
   let currentCategory: string = "All";
   let visibleLimit: number = 6;
   const ITEMS_TO_ADD = 3;
@@ -513,7 +472,6 @@ export function createCatalog(props: CatalogProps): HTMLElement {
 
       if (isMatch) {
         totalMatchesForCategory++;
-        // Kung hindi pa lumalagpas sa limit (6, 9, 12, etc.), ipakita. Kung lumagpas, itago.
         if (currentlyShowingCount < visibleLimit) {
           card.style.display = "";
           card.removeAttribute("hidden");
@@ -531,7 +489,6 @@ export function createCatalog(props: CatalogProps): HTMLElement {
     if (emptyState) emptyState.hidden = totalMatchesForCategory !== 0;
     if (grid) grid.hidden = totalMatchesForCategory === 0;
 
-    // Ipakita ang button kung mas marami pang total items kaysa sa kasalukuyang nakikita
     if (viewMoreBtn) {
       if (totalMatchesForCategory > visibleLimit) {
         viewMoreBtn.style.display = "inline-flex";
@@ -559,11 +516,10 @@ export function createCatalog(props: CatalogProps): HTMLElement {
       return;
     }
     
-    // Filter click handler
     const filterBtn = target.closest<HTMLButtonElement>(".filter-badge");
     if (filterBtn) {
       currentCategory = filterBtn.dataset.filter as FilterCategory;
-      visibleLimit = 6; // Reset the limit back to 6 whenever a new filter is clicked
+      visibleLimit = 6; 
 
       filterButtons.forEach((btn) => {
         btn.setAttribute("aria-pressed", String(btn === filterBtn));
@@ -573,10 +529,9 @@ export function createCatalog(props: CatalogProps): HTMLElement {
       return;
     }
 
-    // View more click handler
     const viewMoreClicked = target.closest<HTMLButtonElement>("#view-more-btn");
     if (viewMoreClicked) {
-      visibleLimit += ITEMS_TO_ADD; // BAGO: Magdagdag lang ng 3 images sa grid
+      visibleLimit += ITEMS_TO_ADD; 
       updateGridUI();
       return;
     }

@@ -398,7 +398,10 @@
 }
 
 /* The feed renders its own wrapper and heading; the section above already provides both. */
-#dashboard-product-feed { display: block; }
+#dashboard-product-feed {
+  display: block;
+  padding-top: var(--space-5);
+}
 
 .dashboard-catalog__feed > * {
   padding: 0;
@@ -418,6 +421,7 @@
 .dashboard-catalog .card__description {
   display: -webkit-box;
   overflow: hidden;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -509,6 +513,7 @@
   .dashboard-catalog__header { align-items: flex-start; }
   .dashboard-filters { flex-basis: 100%; }
   .dashboard-catalog .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #dashboard-product-feed { padding-top: var(--space-4); }
 }
 
 @media (prefers-reduced-motion: no-preference) and (max-width: 720px) {
@@ -521,4 +526,5 @@
   .dashboard-order-status__icon { width: 34px; height: 34px; }
   .dashboard-order-status__icon svg { width: 18px; height: 18px; }
   .dashboard-catalog .catalog-grid { grid-template-columns: 1fr; }
+  #dashboard-product-feed { padding-top: var(--space-3); }
 }

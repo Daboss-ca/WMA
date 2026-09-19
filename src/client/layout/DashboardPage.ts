@@ -88,10 +88,6 @@ function escapeHtml(value: string): string {
   })[character] ?? character);
 }
 
-/**
- * Reads the item's category as a lower-case string.
- * Assumes catalog items expose a string `category`; change this one line if the field is named differently.
- */
 function getCategoryKey(item: CatalogItem): string {
   const raw = (item as unknown as Record<string, unknown>).category;
   return typeof raw === "string" ? raw.trim().toLowerCase() : "";
@@ -126,7 +122,6 @@ function renderStage(stage: ProjectStage, index: number): string {
     </li>`;
 }
 
-/** Share of the track filled, measured up to the furthest stage that has been reached. */
 function getTrackerProgress(stages: readonly ProjectStage[]): number {
   let reached = 0;
   stages.forEach((stage, index) => {
@@ -145,14 +140,14 @@ function renderFilters(): string {
     })).filter((filter) => filter.count > 0),
   ];
 
-  // Nothing to filter by if no category matched: hide the bar rather than show a lone "All".
   if (filters.length <= 1) return "";
 
+  // BAGO: Inayos ang HTML structure ng filter buttons para tumugma sa reference image at maiwasan ang duplication
   const chips = filters
     .map(
       (filter) => `
-        <button type="button" class="dashboard-filter" data-filter="${filter.id}" aria-pressed="${filter.id === ALL_FILTER_ID}">
-          ${escapeHtml(filter.label)}<span class="dashboard-filter__count">${filter.count}</span>
+        <button type="button" class="dashboard-filter ${filter.id === ALL_FILTER_ID ? 'is-active' : ''}" data-filter="${filter.id}" aria-pressed="${filter.id === ALL_FILTER_ID}">
+          ${escapeHtml(filter.label)} <span class="dashboard-filter__count">${filter.count}</span>
         </button>`,
     )
     .join("");
@@ -169,6 +164,8 @@ export function createDashboardPage(): HTMLElement {
   if (!user) return page;
 
   const firstName = user.fullName.trim().split(/\s+/)[0] || user.fullName;
+  
+  // BAGO: Inayos ang pagkakasunod-sunod. Inilipat ang renderFilters() sa ibaba ng pamagat para hindi na maging duplicate sa header layout.
   page.innerHTML = `
     <div class="wrap dashboard-page__inner">
       <section class="dashboard-welcome" aria-labelledby="dashboard-title">
@@ -208,9 +205,14 @@ export function createDashboardPage(): HTMLElement {
 
       <section class="dashboard-catalog" aria-labelledby="catalog-title">
         <div class="dashboard-catalog__header">
-          <h2 id="catalog-title">Explore the catalog</h2>
-          ${renderFilters()}
+          <h2 id="catalog-title">EXPLORE THE CATALOG</h2>
         </div>
+        
+        <!-- BAGO: Ang nag-iisang filter bar row, inilipat sa ibaba ng title -->
+        <div class="dashboard-catalog__filter-container">
+           ${renderFilters()}
+        </div>
+
         <p class="dashboard-sr-only" role="status" aria-live="polite" data-filter-status></p>
         <div id="dashboard-product-feed" class="dashboard-catalog__feed"></div>
       </section>
@@ -254,9 +256,18 @@ export function createDashboardPage(): HTMLElement {
     if (nextFilter === activeFilter) return;
 
     activeFilter = nextFilter;
+    
+    // Update UI para sa active button
     filterBar.querySelectorAll<HTMLButtonElement>("[data-filter]").forEach((chip) => {
-      chip.setAttribute("aria-pressed", String(chip === button));
+      const isSelected = chip === button;
+      chip.setAttribute("aria-pressed", String(isSelected));
+      if (isSelected) {
+        chip.classList.add('is-active');
+      } else {
+        chip.classList.remove('is-active');
+      }
     });
+    
     feedMount?.classList.add("is-filtered");
     renderFeed(true);
   });
