@@ -1,5 +1,5 @@
 import type { FilterCategory, FurnitureItem } from "../types/furniture";
-import { attachRippleToAll } from "./interactions.js";
+import { attachRippleToAll } from "../utils/interactions.js";
 import * as THREE from "three";
 import gsap from "gsap";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
@@ -14,7 +14,7 @@ import {
   disposeWmaGroup,
   type AssemblyPart,
   type WmaMaterials,
-} from "./Wmafurniture .js";
+} from "../components/catalog/WmaFurniture.js";
 
 export interface HeroContent {
   eyebrow?: string;
@@ -104,6 +104,11 @@ function renderFilterBar(filters: FilterCategory[]): string {
 
 function renderCard(item: FurnitureItem, index: number): string {
   const { width, height, depth, unit } = item.dimensions;
+  const formattedPrice = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(item.price);
 
   return `
     <article class="card" data-category="${item.category}" style="--card-index: ${index}">
@@ -118,6 +123,7 @@ function renderCard(item: FurnitureItem, index: number): string {
 
       <div class="card__body">
         <h3 class="card__title">${item.name}</h3>
+        <p class="card__price">${formattedPrice}</p>
         <p class="card__description">${item.description}</p>
 
         <div class="card__meta">
@@ -134,6 +140,76 @@ function renderCard(item: FurnitureItem, index: number): string {
       </div>
     </article>
   `;
+}
+
+export function createCatalogProductFeed(items: FurnitureItem[]): HTMLElement {
+  const section = document.createElement("section");
+  section.className = "dashboard-product-feed";
+  section.id = "dashboard-catalog";
+  section.setAttribute("aria-labelledby", "dashboard-catalog-title");
+
+  section.innerHTML = `
+    <div class="dashboard-section__heading">
+      <div>
+        <p class="dashboard-eyebrow">Curated for your next project</p>
+        <h2 id="dashboard-catalog-title">You might also like</h2>
+      </div>
+      <a class="dashboard-feed__link" href="#catalog">View all</a>
+    </div>
+    ${renderFilterBar(defaultFilters)}
+    <div class="catalog-grid">
+      ${items.slice(0, 6).map(renderCard).join("")}
+    </div>
+    <p class="catalog-empty" hidden>No pieces match that category yet — try another filter.</p>
+  `;
+
+  const grid = section.querySelector<HTMLElement>(".catalog-grid");
+  const emptyState = section.querySelector<HTMLElement>(".catalog-empty");
+  const filterButtons = Array.from(section.querySelectorAll<HTMLButtonElement>(".filter-badge"));
+  let currentCategory: FilterCategory = "All";
+
+  const updateGridUI = (): void => {
+    const cards = Array.from(section.querySelectorAll<HTMLElement>(".card"));
+    let matchingCards = 0;
+
+    cards.forEach((card) => {
+      const isMatch = currentCategory === "All" || card.dataset.category === currentCategory;
+      card.hidden = !isMatch;
+      if (isMatch) matchingCards++;
+    });
+
+    if (grid) grid.hidden = matchingCards === 0;
+    if (emptyState) emptyState.hidden = matchingCards !== 0;
+  };
+
+  updateGridUI();
+
+  section.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    const filterButton = target.closest<HTMLButtonElement>(".filter-badge");
+    if (filterButton) {
+      currentCategory = filterButton.dataset.filter as FilterCategory;
+      filterButtons.forEach((button) => {
+        button.setAttribute("aria-pressed", String(button === filterButton));
+      });
+      updateGridUI();
+      return;
+    }
+
+    const inquiryLink = target.closest<HTMLAnchorElement>('.card__actions a[href="#contact"]');
+    if (!inquiryLink) return;
+
+    event.preventDefault();
+    if (!getCurrentUser()) {
+      uiState.openModal("login");
+      return;
+    }
+
+    uiState.openInquiryModal(inquiryLink.closest<HTMLElement>(".card")?.dataset.category);
+  });
+
+  attachRippleToAll(section);
+  return section;
 }
 
 const CATEGORY_TRANSFORM: Record<string, { scale: number; offsetY: number }> = {

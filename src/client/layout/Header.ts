@@ -4,7 +4,7 @@ import {
   initMobileNavToggle,
   initThemeToggle,
   attachRippleToAll,
-} from "./interactions.js";
+} from "../utils/interactions.js";
 import { getCurrentUser, clearSession, SESSION_CHANGED_EVENT } from "../state/sessionManager.js";
 import { uiState } from "../state/uiStateManager.js";
 import { applyTheme } from "../utils/theme.js";
@@ -78,7 +78,7 @@ export function createHeader(props: HeaderProps): HTMLElement {
   initHeaderScrollEffect(header);
   attachRippleToAll(header);
 
-  const sectionIds = new Set(["catalog", "process", "contact"]);
+  const sectionIds = new Set(["catalog", "process", "dashboard", "project-tracker", "contact"]);
   const navLinkElements = Array.from(header.querySelectorAll<HTMLAnchorElement>(".site-nav__link"));
 
   const setActiveNavLink = (sectionId: string): void => {

@@ -2,10 +2,8 @@ import './src/client/styles/index.css';
 import { initTheme } from './src/client/utils/theme';
 import { createHeader, updateHeaderUI } from "./src/client/layout/Header";
 import { createFooter } from "./src/client/layout/Footer";
-import { createCatalog } from "./src/client/layout/Catalog";
-import { createProcessSection } from "./src/client/layout/ProcessSection"; 
-import { createProfilePage } from "./src/client/layout/ProfilePage";
-import { catalogItems } from "./src/client/data/furnitureData";
+import { createLandingPage } from "./src/client/layout/LandingPage";
+import { createDashboardPage } from "./src/client/layout/DashboardPage";
 
 import { createAuthModal, attachAuthModalEvents } from "./src/client/components/auth/AuthModal";
 import { createInquiryModal } from "./src/client/components/inquiry/InquiryModal";
@@ -14,74 +12,43 @@ import { uiState } from "./src/client/state/uiStateManager";
 
 initTheme();
 
-// Dynamic computation para sa years in the workshop
-const startDate = new Date(2020, 8); 
-const currentDate = new Date();
-let yearsOfExperience = currentDate.getFullYear() - startDate.getFullYear();
-
-if (currentDate.getMonth() < startDate.getMonth()) {
-  yearsOfExperience--;
-}
-
 const app = document.querySelector<HTMLDivElement>("#app");
 
 function renderApp() {
   if (!app) return;
   app.innerHTML = "";
 
-  const main = document.createElement("main");
-  main.className = "site-main";
-  
-  // DITO NA NAKALAGAY YUNG "Start a project" bilang nag-iisang button sa taas
-  main.append(
-    createCatalog({
-      hero: {
-        title: "YOU BRING THE PRODUCT, WE'LL BUILD THE KIOSK",
-        lead: "WMA Wood Craft designs and builds solid-wood tables, cabinets, and custom pieces for homes and small businesses across the region.",
-        primaryCta: { label: "Inquire Now", href: "#inquiry" }, 
-        secondaryCta: undefined, 
-        stats: [
-          { value: `${yearsOfExperience}yrs`, label: "in the workshop" },
-          { value: "1.5k", label: "pieces delivered" },
-        ],
-      },
-      items: catalogItems,
-    }),
-    createProcessSection(), 
-    createProfilePage()
-  );
-
-  const profilePage = main.querySelector<HTMLElement>("#profile-page");
-  const collectionSections = Array.from(main.children).filter(
-    (section): section is HTMLElement => section !== profilePage
-  );
-
-  document.addEventListener("wma:open-profile", () => {
-    collectionSections.forEach((section) => { section.hidden = true; });
-    if (profilePage) profilePage.hidden = false;
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
-
-  document.addEventListener("wma:close-profile", () => {
-    if (profilePage) profilePage.hidden = true;
-    collectionSections.forEach((section) => { section.hidden = false; });
-  });
+  const currentUser = getCurrentUser();
+  const main = currentUser ? createDashboardPage() : createLandingPage();
 
   app.append(
     createHeader({
       navLinks: [
-        { label: "Collection", href: "#catalog", current: true },
-        { label: "Our process", href: "#process" },
+        ...(currentUser
+          ? [
+              { label: "Dashboard", href: "#dashboard", current: true },
+              { label: "Project tracker", href: "#project-tracker" },
+            ]
+          : [
+              { label: "Collection", href: "#catalog", current: true },
+              { label: "Our process", href: "#process" },
+            ]),
         { label: "Contact", href: "#contact" },
       ],
     }),
     main,
     createFooter({
-      quickLinks: [
-        { label: "Collection", href: "#catalog" },
-        { label: "Request a quote", href: "#quote" },
-        { label: "Contact", href: "#contact" },
-      ],
+      quickLinks: currentUser
+        ? [
+            { label: "Dashboard", href: "#dashboard" },
+            { label: "Project tracker", href: "#project-tracker" },
+            { label: "Contact", href: "#contact" },
+          ]
+        : [
+            { label: "Collection", href: "#catalog" },
+            { label: "Request a quote", href: "#quote" },
+            { label: "Contact", href: "#contact" },
+          ],
       categoryLinks: [
         { label: "Tables", href: "#catalog" },
         { label: "Cabinets", href: "#catalog" },
@@ -107,16 +74,6 @@ function renderApp() {
 
   updateHeaderUI();
 
-  // Simple event listener para sa nag-iisang Start a Project button
-  const heroStartProjectBtn = document.querySelector('a[href="#inquiry"]');
-  heroStartProjectBtn?.addEventListener('click', (e) => {
-    e.preventDefault();
-    if (!getCurrentUser()) {
-      uiState.openModal('signup');
-      return;
-    }
-    uiState.openInquiryModal();
-  });
 }
 
 // Initial render

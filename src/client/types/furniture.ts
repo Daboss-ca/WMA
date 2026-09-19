@@ -26,6 +26,7 @@ export interface FurnitureItem {
   name: string;
   category: FurnitureCategory;
   description: string;
+  price: number;
   dimensions: FurnitureDimensions;
   imageUrl?: string;
   imageAlt?: string;

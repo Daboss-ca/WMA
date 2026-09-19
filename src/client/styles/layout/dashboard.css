@@ -1,0 +1,524 @@
+/* ==========================================================================
+   Dashboard
+   Flat by default; the glass panel is reserved for the active project.
+   All colour comes from the theme tokens, so light and dark follow the site.
+   ========================================================================== */
+
+.dashboard-page {
+  --dash-line: color-mix(in srgb, var(--color-border) 75%, transparent);
+  --dash-tint: color-mix(in srgb, var(--accent-primary) 9%, transparent);
+  --dash-tint-strong: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+  --dash-glass: color-mix(in srgb, var(--bg-surface) 68%, transparent);
+  --dash-focus: 2px solid var(--accent-primary);
+
+  min-height: 70vh;
+  background:
+    radial-gradient(56rem 26rem at 0% 0%, color-mix(in srgb, var(--accent-soft) 70%, transparent), transparent 70%),
+    var(--bg-page);
+}
+
+.dashboard-page__inner {
+  display: grid;
+  gap: var(--space-6);
+  padding-block: clamp(1.75rem, 4vw, 3rem) clamp(3rem, 7vw, 5rem);
+}
+
+.dashboard-page__inner > * { min-width: 0; }
+
+.dashboard-page h1,
+.dashboard-page h2 {
+  margin: 0;
+  color: var(--text-main);
+  font-family: var(--font-display);
+}
+
+.dashboard-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Welcome — one compact row, no container
+   -------------------------------------------------------------------------- */
+
+.dashboard-welcome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.dashboard-welcome h1 {
+  font-size: clamp(1.5rem, 3.2vw, 2rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.dashboard-welcome p {
+  max-width: 40rem;
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+}
+
+.dashboard-welcome__mark {
+  color: var(--accent-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  opacity: 0.22;
+  user-select: none;
+}
+
+/* --------------------------------------------------------------------------
+   Your orders — hairline rules only, no card
+   -------------------------------------------------------------------------- */
+
+.dashboard-orders__title {
+  margin-bottom: var(--space-3);
+  font-size: var(--fs-300);
+}
+
+.dashboard-order-statuses {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-block: 1px solid var(--dash-line);
+}
+
+.dashboard-order-status {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 0;
+  background: transparent;
+  color: var(--text-main);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.dashboard-order-status + .dashboard-order-status { border-left: 1px solid var(--dash-line); }
+
+/* Underline draws in on hover/focus; it sits over the row's bottom rule. */
+.dashboard-order-status::after {
+  content: "";
+  position: absolute;
+  inset: auto var(--space-4) -1px;
+  height: 2px;
+  background: var(--accent-primary);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-base, 0.25s) var(--ease-standard);
+}
+
+.dashboard-order-status:hover,
+.dashboard-order-status:focus-visible { background: var(--dash-tint); }
+
+.dashboard-order-status:hover::after,
+.dashboard-order-status:focus-visible::after { transform: scaleX(1); }
+
+.dashboard-order-status:focus-visible {
+  outline: var(--dash-focus);
+  outline-offset: -2px;
+}
+
+.dashboard-order-status__icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--text-muted);
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.dashboard-order-status__icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
+.dashboard-order-status:hover .dashboard-order-status__icon,
+.dashboard-order-status:focus-visible .dashboard-order-status__icon {
+  border-color: var(--accent-primary);
+  background: var(--dash-tint);
+  color: var(--accent-primary);
+}
+
+.dashboard-order-status__text { display: grid; gap: 2px; min-width: 0; }
+.dashboard-order-status strong { font-size: var(--fs-200); font-weight: 600; white-space: nowrap; }
+.dashboard-order-status small { color: var(--text-muted); font-size: var(--fs-100); white-space: nowrap; }
+
+/* --------------------------------------------------------------------------
+   Active project — the one glass panel on the page
+   -------------------------------------------------------------------------- */
+
+.dashboard-project {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 26%, var(--color-border));
+  border-radius: var(--radius-md);
+  /* Layers, top to bottom: faint irregular grain, amber glow from the corner, frosted surface. */
+  background:
+    repeating-linear-gradient(91deg, transparent 0 7px, color-mix(in srgb, var(--accent-primary) 3.5%, transparent) 7px 8px),
+    repeating-linear-gradient(93deg, transparent 0 13px, color-mix(in srgb, var(--accent-primary) 3%, transparent) 13px 14px),
+    radial-gradient(circle at 100% 0%, var(--dash-tint-strong), transparent 55%),
+    var(--dash-glass);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-project__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.dashboard-project__label {
+  margin: 0 0 var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: 600;
+}
+
+.dashboard-project h2 { font-size: var(--fs-600); line-height: 1.15; }
+
+.dashboard-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--dash-tint-strong);
+  border-radius: var(--radius-pill);
+  background: var(--dash-tint);
+  color: var(--accent-primary);
+  font-size: var(--fs-100);
+  font-weight: 700;
+}
+
+.dashboard-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Stepper: nodes sit at the centre of four equal columns, so the track runs from 12.5% to 87.5%. */
+.project-tracker { position: relative; }
+
+.project-tracker__line {
+  position: absolute;
+  top: 19px;
+  right: 12.5%;
+  left: 12.5%;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--color-border);
+}
+
+.project-tracker__line span {
+  display: block;
+  height: 100%;
+  background: var(--accent-primary);
+  transform: scaleX(var(--tracker-progress, 0));
+  transform-origin: left;
+}
+
+.project-tracker__stages {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-tracker__stage {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding-inline: var(--space-2);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.project-tracker__node {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  margin-bottom: var(--space-2);
+  place-items: center;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: var(--fs-200);
+  font-weight: 700;
+}
+
+.project-tracker__node svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+
+.project-tracker__stage strong { color: var(--text-main); font-size: var(--fs-200); }
+.project-tracker__stage small { font-size: var(--fs-100); }
+
+.project-tracker__stage--complete .project-tracker__node {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+.project-tracker__stage--active .project-tracker__node {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  box-shadow: 0 0 0 4px var(--dash-tint-strong);
+}
+
+.project-tracker__stage--active small { color: var(--accent-primary); font-weight: 700; }
+.project-tracker__stage--upcoming strong { color: var(--text-muted); font-weight: 600; }
+
+.dashboard-project__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--dash-line);
+}
+
+.dashboard-project__footer p { margin: 0; color: var(--text-muted); font-size: var(--fs-200); }
+.dashboard-tracker__action { flex: 0 0 auto; }
+
+/* --------------------------------------------------------------------------
+   Catalog feed + category filters
+   -------------------------------------------------------------------------- */
+
+.dashboard-catalog { margin-top: var(--space-2); }
+
+.dashboard-catalog__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4) var(--space-6);
+  margin-bottom: var(--space-5);
+}
+
+.dashboard-catalog h2 { font-size: var(--fs-600); }
+
+/* Padding and negative margin keep focus rings from being clipped by the scroll container. */
+.dashboard-filters {
+  display: flex;
+  max-width: 100%;
+  margin: -3px;
+  padding: 3px;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dashboard-filters::-webkit-scrollbar { display: none; }
+
+.dashboard-filter {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-200);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.dashboard-filter:hover {
+  border-color: var(--accent-primary);
+  background: var(--dash-tint);
+  color: var(--text-main);
+}
+
+.dashboard-filter:focus-visible { outline: var(--dash-focus); outline-offset: 2px; }
+
+.dashboard-filter[aria-pressed="true"] {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+.dashboard-filter__count {
+  min-width: 1.5em;
+  padding: 0 0.4em;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font-size: var(--fs-100);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* The feed renders its own wrapper and heading; the section above already provides both. */
+#dashboard-product-feed { display: block; }
+
+.dashboard-catalog__feed > * {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.dashboard-catalog__feed .dashboard-section__heading { display: none; }
+
+.dashboard-catalog .catalog-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.dashboard-catalog .card__description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.dashboard-catalog .card__actions { padding-top: 0; }
+.dashboard-feed__link { align-self: center; color: var(--accent-primary); font-size: var(--fs-200); font-weight: 700; text-decoration: none; }
+.dashboard-feed__link:hover, .dashboard-feed__link:focus-visible { text-decoration: underline; }
+.card__price { margin: var(--space-2) 0 0; color: var(--text-main); font-size: var(--fs-300); font-weight: 700; }
+
+.dashboard-catalog__feed > .dashboard-empty {
+  padding: var(--space-8) var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   Motion: one load moment (track fills, active step pulses) and feedback on filtering
+   -------------------------------------------------------------------------- */
+
+@keyframes dashboard-tracker-fill-x { from { transform: scaleX(0); } }
+@keyframes dashboard-tracker-fill-y { from { transform: scaleY(0); } }
+@keyframes dashboard-node-pulse {
+  0%   { box-shadow: 0 0 0 4px var(--dash-tint-strong); }
+  70%  { box-shadow: 0 0 0 11px transparent; }
+  100% { box-shadow: 0 0 0 4px var(--dash-tint-strong); }
+}
+@keyframes dashboard-feed-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .project-tracker__line span { animation: dashboard-tracker-fill-x 900ms var(--ease-standard) 150ms both; }
+  .project-tracker__stage--active .project-tracker__node { animation: dashboard-node-pulse 2.6s ease-out 1s infinite; }
+  .dashboard-catalog__feed.is-filtered > * { animation: dashboard-feed-in 260ms var(--ease-standard) both; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-order-status::after { transition: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  .dashboard-welcome__mark { display: none; }
+
+  /* Orders: 2 x 2 grid with hairlines between cells */
+  .dashboard-order-statuses { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-order-status:nth-child(3) { border-left: 0; }
+  .dashboard-order-status:nth-child(-n + 2) { border-bottom: 1px solid var(--dash-line); }
+
+  /* Project: vertical stepper. Rows are a fixed height so the fill maps exactly onto the track. */
+  .project-tracker__line {
+    top: 2.125rem;
+    right: auto;
+    bottom: 2.125rem;
+    left: 19px;
+    width: 2px;
+    height: auto;
+  }
+
+  .project-tracker__line span {
+    width: 100%;
+    transform: scaleY(var(--tracker-progress, 0));
+    transform-origin: top;
+  }
+
+  .project-tracker__stages { grid-template-columns: 1fr; grid-auto-rows: 4.25rem; }
+
+  .project-tracker__stage {
+    grid-template-columns: 40px 1fr;
+    align-content: center;
+    align-items: center;
+    justify-items: start;
+    column-gap: var(--space-4);
+    padding-inline: 0;
+    text-align: left;
+  }
+
+  .project-tracker__node { grid-row: 1 / span 2; margin-bottom: 0; }
+  .project-tracker__stage strong,
+  .project-tracker__stage small { grid-column: 2; }
+
+  .dashboard-project__footer { flex-direction: column; align-items: flex-start; }
+
+  .dashboard-catalog__header { align-items: flex-start; }
+  .dashboard-filters { flex-basis: 100%; }
+  .dashboard-catalog .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: no-preference) and (max-width: 720px) {
+  .project-tracker__line span { animation-name: dashboard-tracker-fill-y; }
+}
+
+@media (max-width: 480px) {
+  .dashboard-order-status { padding: var(--space-3); gap: var(--space-2); }
+  .dashboard-order-status::after { inset-inline: var(--space-3); }
+  .dashboard-order-status__icon { width: 34px; height: 34px; }
+  .dashboard-order-status__icon svg { width: 18px; height: 18px; }
+  .dashboard-catalog .catalog-grid { grid-template-columns: 1fr; }
+}
