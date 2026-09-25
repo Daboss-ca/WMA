@@ -176,7 +176,7 @@ export function updateHeaderUI(): void {
 
     authContainer.innerHTML = `
       <div class="header-authenticated-actions">
-        <button type="button" class="header-action-button" aria-label="View cart" title="Cart">
+        <button type="button" id="header-cart-btn" class="header-action-button" aria-label="View cart" title="Cart">
           <svg class="header-action-button__icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <circle cx="8" cy="21" r="1"></circle>
             <circle cx="19" cy="21" r="1"></circle>
@@ -184,7 +184,7 @@ export function updateHeaderUI(): void {
           </svg>
           <span class="header-action-button__badge" data-badge="count" aria-hidden="true" hidden></span>
         </button>
-        <button type="button" class="header-action-button" aria-label="View notifications" title="Notifications">
+        <button type="button" id="header-notifications-btn" class="header-action-button" aria-label="View notifications" title="Notifications">
           <svg class="header-action-button__icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
             <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
@@ -213,6 +213,18 @@ export function updateHeaderUI(): void {
         </div>
       </div>
     `;
+
+    // --- BAGO: Event listener para buksan ang Cart Page ---
+    const cartBtn = authContainer.querySelector<HTMLButtonElement>("#header-cart-btn");
+    cartBtn?.addEventListener("click", () => {
+      document.dispatchEvent(new CustomEvent("wma:open-cart"));
+    });
+
+    // --- BAGO: Event listener para buksan ang Notifications Modal (Ready na para sa next step) ---
+    const notificationsBtn = authContainer.querySelector<HTMLButtonElement>("#header-notifications-btn");
+    notificationsBtn?.addEventListener("click", () => {
+      document.dispatchEvent(new CustomEvent("wma:open-notifications"));
+    });
 
     const profileTrigger = authContainer.querySelector<HTMLButtonElement>("#profile-menu-trigger");
     const profilePanel = authContainer.querySelector<HTMLElement>("#profile-menu-panel");

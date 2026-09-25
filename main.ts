@@ -4,8 +4,8 @@ import { createHeader, updateHeaderUI } from "./src/client/layout/Header";
 import { createFooter } from "./src/client/layout/Footer";
 import { createLandingPage } from "./src/client/layout/LandingPage";
 import { createDashboardPage } from "./src/client/layout/DashboardPage";
-// BAGO: I-import ang OrdersPage para magamit sa routing
 import { createOrdersPage, type OrderStatusTab } from "./src/client/components/order/OrdersPage";
+import { createCartPage } from "./src/client/components/Cart/Cartpage";
 
 import { createAuthModal, attachAuthModalEvents } from "./src/client/components/auth/AuthModal";
 import { createInquiryModal } from "./src/client/components/inquiry/InquiryModal";
@@ -141,5 +141,50 @@ document.addEventListener("wma:close-orders", () => {
   // Ipakita ulit ang Dashboard
   const dashboardPage = document.querySelector("#dashboard");
   if (dashboardPage) (dashboardPage as HTMLElement).hidden = false;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+
+// BAGO: Event Listeners para sa routing at view-switching ng Cart Page
+let activeCartPage: HTMLElement | null = null;
+
+document.addEventListener("wma:open-cart", () => {
+  // I-hide ang current main view (Dashboard o Landing)
+  const currentMain = document.querySelector(".site-main") as HTMLElement;
+  if (currentMain) currentMain.hidden = true;
+
+  // I-hide din ang Orders page kung sakaling nakabukas ito bago kinlick ang cart
+  if (activeOrdersPage) activeOrdersPage.hidden = true;
+
+  // Tanggalin ang lumang cart page instance
+  activeCartPage?.remove();
+
+  const appContainer = document.querySelector("#app");
+  if (appContainer) {
+    activeCartPage = createCartPage();
+    const footer = appContainer.querySelector("footer");
+    
+    if (footer) {
+      appContainer.insertBefore(activeCartPage, footer);
+    } else {
+      appContainer.appendChild(activeCartPage);
+    }
+    
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+});
+
+document.addEventListener("wma:close-cart", () => {
+  activeCartPage?.remove();
+  activeCartPage = null;
+
+  // I-restore kung ano mang view ang nakabukas dati
+  if (activeOrdersPage) {
+    activeOrdersPage.hidden = false;
+  } else {
+    const currentMain = document.querySelector(".site-main") as HTMLElement;
+    if (currentMain) currentMain.hidden = false;
+  }
+  
   window.scrollTo({ top: 0, behavior: "smooth" });
 });

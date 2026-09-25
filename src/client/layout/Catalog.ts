@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { getCurrentUser } from "../state/sessionManager.js";
 import { uiState } from "../state/uiStateManager.js";
+import { cartManager } from "../state/cartManager.js";
 import {
   createWmaMaterials,
   disposeWmaMaterials,
@@ -109,6 +110,15 @@ function renderCard(item: FurnitureItem, index: number): string {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(item.price);
+  
+  const safeId = (item as any).id || item.name.replace(/\s+/g, '-').toLowerCase();
+
+  const user = getCurrentUser();
+  const actionsStyle = user ? "grid-template-columns: 1fr 1fr; gap: 8px;" : "grid-template-columns: 1fr;";
+  
+  const addToCartBtn = user 
+    ? `<button type="button" class="btn btn--primary btn--sm btn--block" data-action="add-to-cart" data-id="${safeId}">Add to Cart</button>` 
+    : "";
 
   return `
     <article class="card" data-category="${item.category}" style="--card-index: ${index}">
@@ -133,16 +143,16 @@ function renderCard(item: FurnitureItem, index: number): string {
         </div>
       </div>
 
-      <div class="card__actions">
-        <a href="#contact" class="btn btn--secondary btn--sm btn--block">
-          Inquire ${item.category}
-        </a>
+      <div class="card__actions" style="display: grid; ${actionsStyle}">
+        <button type="button" class="btn btn--secondary btn--sm btn--block" data-action="inquire" data-category="${item.category}">
+          Inquire
+        </button>
+        ${addToCartBtn}
       </div>
     </article>
   `;
 }
 
-// BAGO: Nilinis ang function na ito. Tinanggal na ang header/filters dahil nasa DashboardPage.ts na ito.
 export function createCatalogProductFeed(items: FurnitureItem[]): HTMLElement {
   const section = document.createElement("div");
   section.className = "dashboard-product-feed";
@@ -154,18 +164,48 @@ export function createCatalogProductFeed(items: FurnitureItem[]): HTMLElement {
     </div>
   `;
 
-  // Event listener para lang sa "Inquire" button ng mga cards
   section.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
-    const inquiryLink = target.closest<HTMLAnchorElement>('.card__actions a[href="#contact"]');
     
-    if (inquiryLink) {
+    // Add to Cart Logic
+    const addToCartBtn = target.closest<HTMLButtonElement>('[data-action="add-to-cart"]');
+    if (addToCartBtn) {
+      event.preventDefault();
+      const itemId = addToCartBtn.dataset.id;
+      const item = items.find(i => ((i as any).id || i.name.replace(/\s+/g, '-').toLowerCase()) === itemId);
+      
+      if (item) {
+        cartManager.addItem({
+          id: itemId as string,
+          name: item.name,
+          category: item.category,
+          dimensions: `${item.dimensions.width}×${item.dimensions.height}×${item.dimensions.depth} ${item.dimensions.unit}`,
+          unitPrice: item.price,
+          imageUrl: item.imageUrl || 'https://placehold.co/160x160/2B1E16/D4A373?text=WMA'
+        });
+        
+        const originalText = addToCartBtn.textContent;
+        addToCartBtn.textContent = "Added!";
+        addToCartBtn.style.backgroundColor = "var(--success-color, #4CAF50)";
+        addToCartBtn.style.color = "#fff";
+        setTimeout(() => {
+          addToCartBtn.textContent = originalText;
+          addToCartBtn.style.backgroundColor = "";
+          addToCartBtn.style.color = "";
+        }, 1200);
+      }
+      return;
+    }
+
+    // Inquire Logic
+    const inquiryBtn = target.closest<HTMLButtonElement>('[data-action="inquire"]');
+    if (inquiryBtn) {
       event.preventDefault();
       if (!getCurrentUser()) {
         uiState.openModal("login");
         return;
       }
-      uiState.openInquiryModal(inquiryLink.closest<HTMLElement>(".card")?.dataset.category);
+      uiState.openInquiryModal(inquiryBtn.dataset.category);
     }
   });
 
@@ -335,7 +375,6 @@ function createAssemblyScene(container: HTMLElement): AssemblyScene {
     });
   }
 
-  // --- RAYCASTER SETUP ---
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
@@ -412,7 +451,6 @@ function createAssemblyScene(container: HTMLElement): AssemblyScene {
 export function createCatalog(props: CatalogProps): HTMLElement {
   const { hero, items, filters = defaultFilters } = props;
 
-  // I-shuffle ang items array (Fisher-Yates) para random ang unang order sa HTML
   const shuffledItems = [...items];
   for (let i = shuffledItems.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -436,7 +474,6 @@ export function createCatalog(props: CatalogProps): HTMLElement {
         ${shuffledItems.map(renderCard).join("")}
       </div>
       
-      <!-- View more button container -->
       <div class="catalog-actions" style="display: flex; justify-content: center; margin-top: 2.5rem;">
         <button type="button" class="btn btn--outline" id="view-more-btn" style="display: none;">View more</button>
       </div>
@@ -503,19 +540,49 @@ export function createCatalog(props: CatalogProps): HTMLElement {
   section.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
 
-    const inquiryLink = target.closest<HTMLAnchorElement>('.card__actions a[href="#contact"]');
-    if (inquiryLink && !getCurrentUser()) {
+    // Add to Cart Logic
+    const addToCartBtn = target.closest<HTMLButtonElement>('[data-action="add-to-cart"]');
+    if (addToCartBtn) {
       event.preventDefault();
-      uiState.openModal("login");
+      const itemId = addToCartBtn.dataset.id;
+      const item = shuffledItems.find(i => ((i as any).id || i.name.replace(/\s+/g, '-').toLowerCase()) === itemId);
+      
+      if (item) {
+        cartManager.addItem({
+          id: itemId as string,
+          name: item.name,
+          category: item.category,
+          dimensions: `${item.dimensions.width}×${item.dimensions.height}×${item.dimensions.depth} ${item.dimensions.unit}`,
+          unitPrice: item.price,
+          imageUrl: item.imageUrl || 'https://placehold.co/160x160/2B1E16/D4A373?text=WMA'
+        });
+        
+        const originalText = addToCartBtn.textContent;
+        addToCartBtn.textContent = "Added!";
+        addToCartBtn.style.backgroundColor = "var(--success-color, #4CAF50)";
+        addToCartBtn.style.color = "#fff";
+        setTimeout(() => {
+          addToCartBtn.textContent = originalText;
+          addToCartBtn.style.backgroundColor = "";
+          addToCartBtn.style.color = "";
+        }, 1200);
+      }
       return;
     }
 
-    if (inquiryLink) {
+    // Inquire Logic
+    const inquiryBtn = target.closest<HTMLButtonElement>('[data-action="inquire"]');
+    if (inquiryBtn) {
       event.preventDefault();
-      uiState.openInquiryModal(inquiryLink.closest<HTMLElement>(".card")?.dataset.category);
+      if (!getCurrentUser()) {
+        uiState.openModal("login");
+        return;
+      }
+      uiState.openInquiryModal(inquiryBtn.dataset.category);
       return;
     }
     
+    // Filter Logic
     const filterBtn = target.closest<HTMLButtonElement>(".filter-badge");
     if (filterBtn) {
       currentCategory = filterBtn.dataset.filter as FilterCategory;
@@ -529,6 +596,7 @@ export function createCatalog(props: CatalogProps): HTMLElement {
       return;
     }
 
+    // View More Logic
     const viewMoreClicked = target.closest<HTMLButtonElement>("#view-more-btn");
     if (viewMoreClicked) {
       visibleLimit += ITEMS_TO_ADD; 
