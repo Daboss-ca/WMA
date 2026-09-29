@@ -189,7 +189,7 @@ export function updateHeaderUI(): void {
             <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
             <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
           </svg>
-          <span class="header-action-button__badge header-action-button__badge--dot" data-badge="dot" aria-hidden="true" hidden></span>
+          <span class="header-action-button__badge" data-badge="count" aria-hidden="true" hidden></span>
         </button>
         <div class="profile-menu">
           <button type="button" class="profile-menu__trigger" id="profile-menu-trigger" aria-label="Open profile menu" aria-expanded="false" aria-controls="profile-menu-panel">
@@ -214,16 +214,14 @@ export function updateHeaderUI(): void {
       </div>
     `;
 
-    // --- BAGO: Event listener para buksan ang Cart Page ---
     const cartBtn = authContainer.querySelector<HTMLButtonElement>("#header-cart-btn");
     cartBtn?.addEventListener("click", () => {
       document.dispatchEvent(new CustomEvent("wma:open-cart"));
     });
 
-    // --- BAGO: Event listener para buksan ang Notifications Modal (Ready na para sa next step) ---
     const notificationsBtn = authContainer.querySelector<HTMLButtonElement>("#header-notifications-btn");
     notificationsBtn?.addEventListener("click", () => {
-      document.dispatchEvent(new CustomEvent("wma:open-notifications"));
+      window.dispatchEvent(new CustomEvent("wma:open-notifications"));
     });
 
     const profileTrigger = authContainer.querySelector<HTMLButtonElement>("#profile-menu-trigger");

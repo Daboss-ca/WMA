@@ -6,6 +6,9 @@ import { createLandingPage } from "./src/client/layout/LandingPage";
 import { createDashboardPage } from "./src/client/layout/DashboardPage";
 import { createOrdersPage, type OrderStatusTab } from "./src/client/components/order/OrdersPage";
 import { createCartPage } from "./src/client/components/Cart/Cartpage";
+import { initNotificationDrawer } from "./src/client/components/notification/NotificationDrawer";
+import { notificationManager } from "./src/client/state/notificationManager";
+import { cartManager } from "./src/client/state/cartManager";
 
 import { createAuthModal, attachAuthModalEvents } from "./src/client/components/auth/AuthModal";
 import { createInquiryModal } from "./src/client/components/inquiry/InquiryModal";
@@ -75,18 +78,16 @@ function renderApp() {
   );
 
   updateHeaderUI();
-
+  updateCartBadge();
+  updateNotificationBadge();
 }
 
-// Initial render
 renderApp();
 
-// Mag-re-render o mag-update kapag nagbago ang session (Login / Logout)
 document.addEventListener(SESSION_CHANGED_EVENT, () => {
   renderApp();
 });
 
-// Modals Setup (Isang beses lang i-append sa body para hindi mag-duplicate)
 const authModalElement = createAuthModal();
 document.body.appendChild(authModalElement);
 attachAuthModalEvents(authModalElement);
@@ -102,22 +103,17 @@ document.addEventListener('wma:open-inquiry', (e) => {
   uiState.openInquiryModal();
 });
 
-
-// BAGO: Event Listeners para sa routing at view-switching ng Orders Page
 let activeOrdersPage: HTMLElement | null = null;
 
 document.addEventListener("wma:open-orders", (event) => {
   const customEvent = event as CustomEvent<{ status?: OrderStatusTab }>;
   const targetStatus = customEvent.detail?.status ?? "all";
 
-  // I-hide muna ang Dashboard
   const dashboardPage = document.querySelector("#dashboard");
   if (dashboardPage) (dashboardPage as HTMLElement).hidden = true;
 
-  // Tanggalin ang lumang orders page instance kung mayroon man
   activeOrdersPage?.remove();
 
-  // Gumawa ng bago at isingit sa loob ng #app, sa ibabaw ng footer
   const appContainer = document.querySelector("#app");
   if (appContainer) {
     activeOrdersPage = createOrdersPage(targetStatus);
@@ -134,29 +130,22 @@ document.addEventListener("wma:open-orders", (event) => {
 });
 
 document.addEventListener("wma:close-orders", () => {
-  // Tanggalin ang Orders Page
   activeOrdersPage?.remove();
   activeOrdersPage = null;
 
-  // Ipakita ulit ang Dashboard
   const dashboardPage = document.querySelector("#dashboard");
   if (dashboardPage) (dashboardPage as HTMLElement).hidden = false;
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
-
-// BAGO: Event Listeners para sa routing at view-switching ng Cart Page
 let activeCartPage: HTMLElement | null = null;
 
 document.addEventListener("wma:open-cart", () => {
-  // I-hide ang current main view (Dashboard o Landing)
   const currentMain = document.querySelector(".site-main") as HTMLElement;
   if (currentMain) currentMain.hidden = true;
 
-  // I-hide din ang Orders page kung sakaling nakabukas ito bago kinlick ang cart
   if (activeOrdersPage) activeOrdersPage.hidden = true;
 
-  // Tanggalin ang lumang cart page instance
   activeCartPage?.remove();
 
   const appContainer = document.querySelector("#app");
@@ -178,7 +167,6 @@ document.addEventListener("wma:close-cart", () => {
   activeCartPage?.remove();
   activeCartPage = null;
 
-  // I-restore kung ano mang view ang nakabukas dati
   if (activeOrdersPage) {
     activeOrdersPage.hidden = false;
   } else {
@@ -187,4 +175,47 @@ document.addEventListener("wma:close-cart", () => {
   }
   
   window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+// ==========================================
+// BADGES MANAGEMENT SETUP
+// ==========================================
+
+initNotificationDrawer();
+
+function updateCartBadge() {
+  const badge = document.querySelector<HTMLElement>('#header-cart-btn .header-action-button__badge');
+  if (badge) {
+    const items = cartManager.getItems();
+    const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
+    badge.hidden = totalCount === 0;
+    badge.textContent = String(totalCount);
+  }
+}
+
+function updateNotificationBadge() {
+  const badge = document.querySelector<HTMLElement>('#header-notifications-btn .header-action-button__badge');
+  if (badge) {
+    const unreadCount = notificationManager.getUnreadCount();
+    badge.hidden = unreadCount === 0;
+    badge.textContent = String(unreadCount);
+  }
+}
+
+window.addEventListener('wma:cart-updated', () => {
+  updateCartBadge();
+});
+
+window.addEventListener('wma:notifications-updated', (e) => {
+  const customEvent = e as CustomEvent<{ unreadCount: number }>;
+  const badge = document.querySelector<HTMLElement>('#header-notifications-btn .header-action-button__badge');
+  if (badge) {
+    badge.hidden = customEvent.detail.unreadCount === 0;
+    badge.textContent = String(customEvent.detail.unreadCount);
+  }
+});
+
+requestAnimationFrame(() => {
+  updateCartBadge();
+  updateNotificationBadge();
 });

@@ -148,6 +148,7 @@
 }
 
 .header-action-button {
+  position: relative;
   display: grid;
   width: 38px;
   height: 38px;
@@ -155,6 +156,28 @@
   border-radius: var(--radius-pill);
   font-size: 1rem;
   transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+
+/* ---------- Uniform Number Badge para sa Cart at Notifications ---------- */
+.header-action-button__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background-color: var(--accent-primary, #d4a373);
+  color: var(--text-inverse, #1b140f);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  border: 2px solid var(--bg-surface);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
 }
 
 .header-action-button:hover,
