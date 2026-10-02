@@ -180,6 +180,11 @@
   pointer-events: none;
 }
 
+/* Tinitiyak na mawawala nang tuluyan ang badge kapag may hidden attribute */
+.header-action-button__badge[hidden] {
+  display: none !important;
+}
+
 .header-action-button:hover,
 .header-action-button:focus-visible {
   background: var(--accent-soft);

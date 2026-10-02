@@ -17,6 +17,19 @@ export class AuthService {
       throw new Error(error.message);
     }
 
+    if (data.user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert(
+          { id: data.user.id, username, email },
+          { onConflict: 'id' }
+        );
+
+      if (profileError) {
+        throw new Error(`Account was created, but its profile could not be saved: ${profileError.message}`);
+      }
+    }
+
     return data;
   }
 

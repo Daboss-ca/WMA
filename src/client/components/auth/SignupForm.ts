@@ -126,15 +126,31 @@ export function attachSignupFormEvents(): void {
         return;
       }
 
-      // Auto login user after successful signup
-      setCurrentUser(data.user, true);
+      // ----------------------------------------------------
+      // UPDATED LOGIC FOR HANDLING EMAIL VERIFICATION REQUIREMENT
+      // ----------------------------------------------------
+      if (data.needsVerification) {
+        uiState.setLoading('signup-submit-btn', false, 'Create Account');
+        // Show success alert instructing them to check their email
+        uiState.showAlert({ type: 'success', text: 'Account created! Please check your email to verify your account.' });
+        
+        // Optionally switch to the login tab so they can log in after verifying
+        setTimeout(() => {
+          uiState.openModal('login');
+          // Clear form fields
+          form.reset();
+        }, 3000); // 3 seconds delay before switching tabs
+        
+      } else {
+        // If email confirmation is off, proceed to auto-login
+        setCurrentUser(data.user, true);
+        uiState.setLoading('signup-submit-btn', false, 'Create Account');
+        uiState.showAlert({ type: 'success', text: 'Account created! Logging in...' });
 
-      uiState.setLoading('signup-submit-btn', false, 'Create Account');
-      uiState.showAlert({ type: 'success', text: 'Account created! Logging in...' });
-
-      setTimeout(() => {
-        uiState.closeModal();
-      }, 1000);
+        setTimeout(() => {
+          uiState.closeModal();
+        }, 1000);
+      }
       
     } catch (error) {
       uiState.setLoading('signup-submit-btn', false, 'Create Account');

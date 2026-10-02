@@ -26,7 +26,6 @@ function dispatchCloseCart(target: HTMLElement): void {
   );
 }
 
-/* ---------- inline icons ---------- */
 const icons = {
   arrowLeft:
     '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
@@ -40,8 +39,13 @@ export function createCartPage(): HTMLElement {
   const page = document.createElement('div');
   page.className = 'cart-page';
 
-  function render(): void {
-    const items = cartManager.getItems(); // Kunin ang fresh data
+  // Ginawa nating async ang render para ma-fetch muna ang data sa database bago ipakita
+  async function render(): Promise<void> {
+    page.innerHTML = '<div style="padding: 4rem; text-align: center;">Loading your cart...</div>';
+    
+    await cartManager.fetchCart();
+    const items = cartManager.getItems();
+    
     page.innerHTML = '';
     page.appendChild(buildHeader(items));
     page.appendChild(items.length === 0 ? buildEmptyState() : buildLayout(items));
@@ -137,7 +141,8 @@ export function createCartPage(): HTMLElement {
     return list;
   }
 
-  function handleItemsListClick(event: Event, items: CartItem[]): void {
+  // Ginawa nating async ang pag-click dahil hihintayin ang API update
+  async function handleItemsListClick(event: Event, items: CartItem[]): Promise<void> {
     const target = event.target as HTMLElement;
     const actionButton = target.closest<HTMLButtonElement>('[data-action]');
     if (!actionButton) return;
@@ -149,20 +154,24 @@ export function createCartPage(): HTMLElement {
     const item = items.find((i) => i.id === id);
     if (!item) return;
 
+    // Maglagay ng simpleng loading state sa UI habang nag-a-update
+    actionButton.style.opacity = '0.5';
+    actionButton.style.pointerEvents = 'none';
+
     switch (actionButton.dataset.action) {
       case 'increase':
-        cartManager.updateQuantity(id, item.quantity + 1);
-        render(); // Re-render agad gamit ang updated state
+        await cartManager.updateQuantity(id, item.quantity + 1);
         break;
       case 'decrease':
-        cartManager.updateQuantity(id, item.quantity - 1);
-        render();
+        await cartManager.updateQuantity(id, item.quantity - 1);
         break;
       case 'remove':
-        cartManager.removeItem(id);
-        render();
+        await cartManager.removeItem(id);
         break;
     }
+    
+    // I-render muli kapag tapos na ang database call
+    render(); 
   }
 
   function buildSummary(items: CartItem[]): HTMLElement {
@@ -189,14 +198,15 @@ export function createCartPage(): HTMLElement {
     checkoutButton.className = 'btn btn--primary btn--full';
     checkoutButton.textContent = 'Proceed to Checkout';
     checkoutButton.addEventListener('click', () => {
-      console.log('Proceeding to checkout with:', cartManager.getItems());
+      // Mag-trigger ng event para buksan ang Checkout modal o form
+      document.dispatchEvent(new CustomEvent('wma:open-checkout'));
     });
 
     summary.appendChild(checkoutButton);
     return summary;
   }
 
-  // Initial render setup
+  // Initial trigger
   render();
   return page;
 }

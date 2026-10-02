@@ -8,6 +8,7 @@ import {
 import { getCurrentUser, clearSession, SESSION_CHANGED_EVENT } from "../state/sessionManager.js";
 import { uiState } from "../state/uiStateManager.js";
 import { applyTheme } from "../utils/theme.js";
+import { cartManager } from "../state/cartManager.js";
 
 export interface NavLink {
   label: string;
@@ -149,6 +150,11 @@ export function createHeader(props: HeaderProps): HTMLElement {
     updateHeaderUI();
   });
 
+  // Makinig sa pagbabago ng cart para kusang mag-update ang badge
+  document.addEventListener("wma:cart-updated", () => {
+    updateCartBadgeCount();
+  });
+
   document.addEventListener("click", (event) => {
     const profileMenu = header.querySelector<HTMLElement>(".profile-menu");
     const profilePanel = header.querySelector<HTMLElement>("#profile-menu-panel");
@@ -171,6 +177,23 @@ export function createHeader(props: HeaderProps): HTMLElement {
   return header;
 }
 
+// Helper para i-update ang badge count ng cart nang hindi binabago ang buong header
+function updateCartBadgeCount(): void {
+  const badge = document.querySelector<HTMLElement>("#header-cart-btn .header-action-button__badge");
+  if (!badge) return;
+
+  const items = cartManager.getItems();
+  const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  if (totalCount > 0) {
+    badge.textContent = totalCount > 99 ? "99+" : String(totalCount);
+    badge.removeAttribute("hidden");
+  } else {
+    badge.textContent = "";
+    badge.setAttribute("hidden", "true");
+  }
+}
+
 export function updateHeaderUI(): void {
   const authContainer = document.getElementById("auth-actions-container");
   if (!authContainer) return;
@@ -178,11 +201,9 @@ export function updateHeaderUI(): void {
   const currentUser = getCurrentUser();
 
   if (currentUser) {
-    // Kuhanin ang username (kung wala, fallback ang fullName o 'User')
     const displayUsername = currentUser.username || currentUser.fullName || "User";
     const displayEmail = currentUser.email || "No Email";
 
-    // Ligtas na kunin ang initials gamit ang username
     const initials = displayUsername
       .trim()
       .split(" ")
@@ -271,6 +292,11 @@ export function updateHeaderUI(): void {
     logoutBtn?.addEventListener("click", () => {
       clearSession();
       uiState.closeProfile();
+    });
+
+    // I-fetch at i-update agad ang badge pagka-render ng header
+    cartManager.fetchCart().then(() => {
+      updateCartBadgeCount();
     });
   } else {
     authContainer.innerHTML = `

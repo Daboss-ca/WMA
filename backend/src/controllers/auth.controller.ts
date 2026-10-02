@@ -26,6 +26,17 @@ export class AuthController {
         phone: phone || ''
       } : null;
 
+      // ----------------------------------------------------
+      // UPDATED LOGIC: Check kung kailangan ng Email Verification
+      // ----------------------------------------------------
+      if (!result.session) {
+        return res.status(200).json({ 
+          message: 'Registration successful! Please check your email to verify your account.', 
+          needsVerification: true 
+        });
+      }
+
+      // Kung walang verification na kailangan, tuloy sa auto-login
       return res.status(201).json({
         message: 'Registration successful!',
         user: userObj,
