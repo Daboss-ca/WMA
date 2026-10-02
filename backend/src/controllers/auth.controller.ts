@@ -4,39 +4,65 @@ import { AuthService } from '../services/auth.service.js';
 export class AuthController {
   static async register(req: Request, res: Response) {
     try {
-      const { email, password, fullName } = req.body;
+      const { username, email, phone, password, confirmPassword } = req.body;
 
-      if (!email || !password || !fullName) {
-        return res.status(400).json({ error: 'Lahat ng fields ay kinakailangan (email, password, fullName).' });
+      if (!username || !email || !phone || !password || !confirmPassword) {
+        return res.status(400).json({ error: 'All fields are required (username, email, phone, password, confirmPassword).' });
       }
 
-      const result = await AuthService.register(email, password, fullName);
+      if (password !== confirmPassword) {
+        return res.status(400).json({ error: 'Passwords do not match.' });
+      }
+
+      const result = await AuthService.register(username, email, phone, password);
+      
+      // Sinigurong lahat ng posibleng basahin ng frontend ay may laman at hindi undefined
+      const userObj = result.user ? {
+        ...result.user,
+        username: username,
+        fullName: username,
+        full_name: username,
+        email: email || result.user.email || '',
+        phone: phone || ''
+      } : null;
+
       return res.status(201).json({
-        message: 'Matagumpay na nakapag-register!',
-        user: result.user,
+        message: 'Registration successful!',
+        user: userObj,
         session: result.session,
       });
     } catch (error: any) {
-      return res.status(400).json({ error: error.message || 'May naganap na error sa pag-register.' });
+      return res.status(400).json({ error: error.message || 'An error occurred during registration.' });
     }
   }
 
   static async login(req: Request, res: Response) {
     try {
-      const { email, password } = req.body;
+      const { username, password } = req.body;
 
-      if (!email || !password) {
-        return res.status(400).json({ error: 'Kailangan ang email at password.' });
+      if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password are required.' });
       }
 
-      const result = await AuthService.login(email, password);
+      const result = await AuthService.loginWithUsername(username, password);
+      
+      // Safe fallbacks para sa login response din
+      const userObj = result.user ? {
+        ...result.user,
+        username: username,
+        fullName: result.user.user_metadata?.username || username,
+        full_name: result.user.user_metadata?.username || username,
+        email: result.user.email || '',
+        phone: result.user.user_metadata?.phone || ''
+      } : null;
+
       return res.status(200).json({
-        message: 'Matagumpay na naka-login!',
-        user: result.user,
+        message: 'Login successful!',
+        user: userObj,
         session: result.session,
       });
     } catch (error: any) {
-      return res.status(400).json({ error: error.message || 'Mali ang email o password.' });
+      return res.status(400).json({ error: error.message || 'Invalid username or password.' });
     }
   }
 }

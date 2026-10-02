@@ -22,6 +22,17 @@ export interface HeaderProps {
   ctaHref?: string;
 }
 
+// Helper function para sa ligtas na pag-render ng HTML
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>'"]/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;",
+  })[character] ?? character);
+}
+
 export function createHeader(props: HeaderProps): HTMLElement {
   const { brandName = "WMA Wood Craft", navLinks } = props;
 
@@ -167,7 +178,13 @@ export function updateHeaderUI(): void {
   const currentUser = getCurrentUser();
 
   if (currentUser) {
-    const initials = currentUser.fullName
+    // Kuhanin ang username (kung wala, fallback ang fullName o 'User')
+    const displayUsername = currentUser.username || currentUser.fullName || "User";
+    const displayEmail = currentUser.email || "No Email";
+
+    // Ligtas na kunin ang initials gamit ang username
+    const initials = displayUsername
+      .trim()
       .split(" ")
       .map((part) => part[0])
       .join("")
@@ -194,13 +211,13 @@ export function updateHeaderUI(): void {
         <div class="profile-menu">
           <button type="button" class="profile-menu__trigger" id="profile-menu-trigger" aria-label="Open profile menu" aria-expanded="false" aria-controls="profile-menu-panel">
             <span class="user-avatar" aria-hidden="true">${initials}</span>
-            <span class="profile-menu__name">${currentUser.fullName}</span>
+            <span class="profile-menu__name">${escapeHtml(displayUsername)}</span>
             <span class="profile-menu__chevron" aria-hidden="true">&#8964;</span>
           </button>
           <div class="profile-menu__panel" id="profile-menu-panel" hidden>
             <div class="profile-menu__summary">
-              <strong>${currentUser.fullName}</strong>
-              <span>${currentUser.email}</span>
+              <strong>${escapeHtml(displayUsername)}</strong>
+              <span>${escapeHtml(displayEmail)}</span>
             </div>
             <button type="button" class="profile-menu__item" id="view-profile-btn">View / Edit Profile</button>
             <button type="button" class="profile-menu__item" id="settings-btn">Settings</button>

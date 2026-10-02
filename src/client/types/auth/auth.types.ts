@@ -3,10 +3,13 @@ import type { FormMode } from './form.types.js';
 // Base User Data Structure
 export interface User {
   id: string;
-  fullName: string;
   email: string;
-  password?: string; // Optional kapag ie-exclude ang password sa session state
-  createdAt: string;
+  fullName?: string;  // Nilagyan ng '?' para hindi mag-error kung wala
+  username?: string;  // Idinagdag ang username
+  phone?: string;     // Idinagdag ang phone
+  password?: string;  // Optional na rin dahil backend na ang nagha-handle nito
+  createdAt?: string;
+  // (Hayaan mo lang kung may iba ka pang properties dito)
 }
 
 // Credentials para sa Login Form

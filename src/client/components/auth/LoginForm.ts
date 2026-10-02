@@ -1,15 +1,14 @@
-import { validateEmail } from '../../validation/emailValidator.js';
 import { validatePassword } from '../../validation/passwordValidator.js';
-import { findUserByEmail, setCurrentUser } from '../../state/sessionManager.js';
+import { setCurrentUser } from '../../state/sessionManager.js';
 import { uiState } from '../../state/uiStateManager.js';
 
 export function renderLoginForm(): string {
   return `
     <form id="login-form" novalidate>
       <div class="form-group form-group--floating">
-        <input type="email" id="login-email" placeholder=" " required>
-        <label for="login-email">Email Address</label>
-        <span class="field-error" id="login-email-error"></span>
+        <input type="text" id="login-username" placeholder=" " required>
+        <label for="login-username">Username</label>
+        <span class="field-error" id="login-username-error"></span>
       </div>
 
       <div class="form-group form-group--floating">
@@ -34,35 +33,26 @@ export function renderLoginForm(): string {
 
 export function attachLoginFormEvents(): void {
   const form = document.getElementById('login-form') as HTMLFormElement | null;
-  const emailInput = document.getElementById('login-email') as HTMLInputElement | null;
+  const usernameInput = document.getElementById('login-username') as HTMLInputElement | null;
   const passwordInput = document.getElementById('login-password') as HTMLInputElement | null;
   const rememberCheckbox = document.getElementById('login-remember') as HTMLInputElement | null;
 
-  if (!form || !emailInput || !passwordInput) return;
-
-  // Real-time Email Validation on blur/input
-  emailInput.addEventListener('blur', () => {
-    const errorSpan = document.getElementById('login-email-error');
-    const result = validateEmail(emailInput.value);
-    if (errorSpan) errorSpan.textContent = result.isValid ? '' : (result.message || '');
-  });
+  if (!form || !usernameInput || !passwordInput) return;
 
   // Form Submit Handler
-  form.addEventListener('submit', (e: Event) => {
+  form.addEventListener('submit', async (e: Event) => {
     e.preventDefault();
     uiState.clearAlert();
 
-    const emailVal = emailInput.value;
+    const usernameVal = usernameInput.value.trim();
     const passVal = passwordInput.value;
 
-    const emailCheck = validateEmail(emailVal);
-    const passCheck = validatePassword(passVal);
-
-    if (!emailCheck.isValid) {
-      uiState.showAlert({ type: 'error', text: emailCheck.message || 'Invalid email.' });
+    if (!usernameVal) {
+      uiState.showAlert({ type: 'error', text: 'Username is required.' });
       return;
     }
 
+    const passCheck = validatePassword(passVal);
     if (!passCheck.isValid) {
       uiState.showAlert({ type: 'error', text: passCheck.message || 'Invalid password.' });
       return;
@@ -71,18 +61,26 @@ export function attachLoginFormEvents(): void {
     // Set Loading state (spinner)
     uiState.setLoading('login-submit-btn', true, 'Sign In');
 
-    setTimeout(() => {
-      const existingUser = findUserByEmail(emailVal);
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: usernameVal, password: passVal }),
+      });
 
-      if (!existingUser || existingUser.password !== passVal) {
+      const data = await response.json();
+
+      if (!response.ok) {
         uiState.setLoading('login-submit-btn', false, 'Sign In');
-        uiState.showAlert({ type: 'error', text: 'Invalid email or password.' });
+        uiState.showAlert({ type: 'error', text: data.error || 'Invalid username or password.' });
         return;
       }
 
       // Successful Login
       const rememberMe = rememberCheckbox ? rememberCheckbox.checked : false;
-      setCurrentUser(existingUser, rememberMe);
+      setCurrentUser(data.user, rememberMe);
 
       uiState.setLoading('login-submit-btn', false, 'Sign In');
       uiState.showAlert({ type: 'success', text: 'Welcome back! Logging in...' });
@@ -90,6 +88,10 @@ export function attachLoginFormEvents(): void {
       setTimeout(() => {
         uiState.closeModal();
       }, 1000);
-    }, 1200);
+      
+    } catch (error) {
+      uiState.setLoading('login-submit-btn', false, 'Sign In');
+      uiState.showAlert({ type: 'error', text: 'Network error. Please try again later.' });
+    }
   });
 }

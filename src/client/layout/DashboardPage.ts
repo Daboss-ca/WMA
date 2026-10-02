@@ -121,7 +121,9 @@ export function createDashboardPage(): HTMLElement {
 
   if (!user) return page;
 
-  const firstName = user.fullName.trim().split(/\s+/)[0] || user.fullName;
+  // Ligtas na kunin ang pangalan kahit na undefined ang fullName (gagamitin ang username kung wala)
+  const safeName = user.fullName || user.username || "User";
+  const firstName = safeName.trim().split(/\s+/)[0] || safeName;
 
   page.innerHTML = `
     <div class="wrap dashboard-page__inner">

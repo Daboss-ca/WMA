@@ -38,7 +38,7 @@ export function createAuthModal(): HTMLElement {
 }
 
 export function attachAuthModalEvents(modalElement: HTMLElement): void {
-  // Attach sub-form submit at input events
+  // Attach sub-form submit and input events
   attachLoginFormEvents();
   attachSignupFormEvents();
 
@@ -46,7 +46,7 @@ export function attachAuthModalEvents(modalElement: HTMLElement): void {
   const closeBtn = modalElement.querySelector('#modal-close-btn');
   closeBtn?.addEventListener('click', () => uiState.closeModal());
 
-  // Backdrop Click Event (Isasara ang modal kapag clinick ang labas)
+  // Backdrop Click Event (Close the modal when clicking outside)
   modalElement.addEventListener('click', (e: MouseEvent) => {
     if (e.target === modalElement) {
       uiState.closeModal();

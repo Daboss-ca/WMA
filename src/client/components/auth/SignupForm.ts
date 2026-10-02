@@ -1,21 +1,27 @@
 import { validateEmail } from '../../validation/emailValidator.js';
 import { validatePassword, validateConfirmPassword } from '../../validation/passwordValidator.js';
-import { findUserByEmail, saveUser, setCurrentUser } from '../../state/sessionManager.js';
+import { setCurrentUser } from '../../state/sessionManager.js';
 import { uiState } from '../../state/uiStateManager.js';
 
 export function renderSignupForm(): string {
   return `
     <form id="signup-form" novalidate>
       <div class="form-group form-group--floating">
-        <input type="text" id="signup-fullname" placeholder=" " required>
-        <label for="signup-fullname">Full Name</label>
-        <span class="field-error" id="signup-fullname-error"></span>
+        <input type="text" id="signup-username" placeholder=" " required>
+        <label for="signup-username">Username</label>
+        <span class="field-error" id="signup-username-error"></span>
       </div>
 
       <div class="form-group form-group--floating">
         <input type="email" id="signup-email" placeholder=" " required>
         <label for="signup-email">Email Address</label>
         <span class="field-error" id="signup-email-error"></span>
+      </div>
+
+      <div class="form-group form-group--floating">
+        <input type="tel" id="signup-phone" placeholder=" " required>
+        <label for="signup-phone">Phone Number (+63...)</label>
+        <span class="field-error" id="signup-phone-error"></span>
       </div>
 
       <div class="form-group form-group--floating">
@@ -45,13 +51,14 @@ export function renderSignupForm(): string {
 
 export function attachSignupFormEvents(): void {
   const form = document.getElementById('signup-form') as HTMLFormElement | null;
-  const nameInput = document.getElementById('signup-fullname') as HTMLInputElement | null;
+  const usernameInput = document.getElementById('signup-username') as HTMLInputElement | null;
   const emailInput = document.getElementById('signup-email') as HTMLInputElement | null;
+  const phoneInput = document.getElementById('signup-phone') as HTMLInputElement | null;
   const passInput = document.getElementById('signup-password') as HTMLInputElement | null;
   const confirmPassInput = document.getElementById('signup-confirm-password') as HTMLInputElement | null;
   const termsCheckbox = document.getElementById('signup-terms') as HTMLInputElement | null;
 
-  if (!form || !nameInput || !emailInput || !passInput || !confirmPassInput) return;
+  if (!form || !usernameInput || !emailInput || !phoneInput || !passInput || !confirmPassInput) return;
 
   // Real-time Confirm Password check
   confirmPassInput.addEventListener('input', () => {
@@ -61,23 +68,24 @@ export function attachSignupFormEvents(): void {
   });
 
   // Form Submit Handler
-  form.addEventListener('submit', (e: Event) => {
+  form.addEventListener('submit', async (e: Event) => {
     e.preventDefault();
     uiState.clearAlert();
 
-    const fullName = nameInput.value.trim();
+    const username = usernameInput.value.trim();
     const email = emailInput.value.trim();
+    const phone = phoneInput.value.trim();
     const password = passInput.value;
     const confirmPassword = confirmPassInput.value;
 
-    if (!fullName) {
-      uiState.showAlert({ type: 'error', text: 'Full Name is required.' });
+    if (!username || !phone) {
+      uiState.showAlert({ type: 'error', text: 'Username and Phone Number are required.' });
       return;
     }
 
     const emailCheck = validateEmail(email);
     if (!emailCheck.isValid) {
-      uiState.showAlert({ type: 'error', text: emailCheck.message || 'Invalid email.' });
+      uiState.showAlert({ type: 'error', text: emailCheck.message || 'Invalid email format.' });
       return;
     }
 
@@ -101,27 +109,25 @@ export function attachSignupFormEvents(): void {
     // Set Loading Spinner State
     uiState.setLoading('signup-submit-btn', true, 'Create Account');
 
-    setTimeout(() => {
-      // Check kung may katulad na email na sa database
-      if (findUserByEmail(email)) {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, email, phone, password, confirmPassword }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
         uiState.setLoading('signup-submit-btn', false, 'Create Account');
-        uiState.showAlert({ type: 'error', text: 'This email is already registered.' });
+        uiState.showAlert({ type: 'error', text: data.error || 'Registration failed.' });
         return;
       }
 
-      // Save new user
-      const newUser = {
-        id: `user_${Date.now()}`,
-        fullName,
-        email,
-        password,
-        createdAt: new Date().toISOString()
-      };
-
-      saveUser(newUser);
-
-      // Auto login user pagkatapos mag signup
-      setCurrentUser(newUser, true);
+      // Auto login user after successful signup
+      setCurrentUser(data.user, true);
 
       uiState.setLoading('signup-submit-btn', false, 'Create Account');
       uiState.showAlert({ type: 'success', text: 'Account created! Logging in...' });
@@ -129,6 +135,10 @@ export function attachSignupFormEvents(): void {
       setTimeout(() => {
         uiState.closeModal();
       }, 1000);
-    }, 1200);
+      
+    } catch (error) {
+      uiState.setLoading('signup-submit-btn', false, 'Create Account');
+      uiState.showAlert({ type: 'error', text: 'Network error. Please try again later.' });
+    }
   });
 }
