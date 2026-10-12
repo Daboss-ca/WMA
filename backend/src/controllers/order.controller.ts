@@ -1,82 +1,122 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabaseClient';
 
-export class OrderController {
-  // Checkout: Lumikha ng order mula sa cart items at ilipat sa order_items
-  static async checkout(req: Request, res: Response) {
-    try {
-      const { userId, shippingAddress, items, totalAmount } = req.body;
 
-      if (!userId || !items || items.length === 0) {
-        return res.status(400).json({ error: 'Cart is empty or user is missing.' });
-      }
+export const createOrder = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { user_id, shipping_address } = req.body;
 
-      // 1. Gumawa ng order record (default status ay 'pay' para sa To Pay)
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          user_id: userId,
-          total_amount: totalAmount,
-          shipping_address: shippingAddress,
-          status: 'pay'
-        })
-        .select()
-        .single();
+    if (!user_id || !shipping_address) {
+      res.status(400).json({ error: 'Missing user_id or shipping_address.' });
+      return;
+    }
 
-      if (orderError) throw orderError;
+    const { data: cartItems, error: cartError } = await supabase
+      .from('cart_items')
+      .select(`
+        *,
+        products (
+          price
+        )
+      `)
+      .eq('user_id', user_id);
 
-      const orderId = orderData.id;
+    if (cartError) throw cartError;
 
-      // 2. Ilagay ang mga produktong binili sa order_items table
-      const orderItemsPayload = items.map((item: any) => ({
-        order_id: orderId,
-        product_id: item.productId,
+    if (!cartItems || cartItems.length === 0) {
+      res.status(400).json({ error: 'Cart is empty.' });
+      return;
+    }
+
+    let total_amount = 0;
+    const orderItemsToInsert = cartItems.map((item: any) => {
+      const unitPrice = item.products?.price || item.price || 0;
+      total_amount += unitPrice * item.quantity;
+
+      return {
+        product_id: item.product_id,
         quantity: item.quantity,
-        price: item.price
-      }));
+        price: unitPrice,
+      };
+    });
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItemsPayload);
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .insert([
+        {
+          user_id,
+          total_amount,
+          status: 'Pending',
+          shipping_address,
+        },
+      ])
+      .select()
+      .single();
 
-      if (itemsError) throw itemsError;
+    if (orderError) throw orderError;
+    const order_id = orderData.id;
 
-      // 3. Burahin ang mga items sa cart ng user dahil tapos na ang checkout
-      const { error: clearCartError } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('user_id', userId);
+    const finalOrderItems = orderItemsToInsert.map((item) => ({
+      ...item,
+      order_id,
+    }));
 
-      if (clearCartError) throw clearCartError;
+    const { error: orderItemsError } = await supabase
+      .from('order_items')
+      .insert(finalOrderItems);
 
-      return res.status(201).json({
-        message: 'Checkout successful!',
-        order: orderData
-      });
-    } catch (error: any) {
-      return res.status(400).json({ error: error.message || 'Checkout failed.' });
-    }
+    if (orderItemsError) throw orderItemsError;
+
+    const { error: clearCartError } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('user_id', user_id);
+
+    if (clearCartError) throw clearCartError;
+
+    res.status(201).json({
+      message: 'Checkout completed successfully!',
+      order_id,
+    });
+  } catch (error: any) {
+    console.error('Checkout Error:', error);
+    res.status(500).json({ error: 'Failed to process order.', details: error.message });
   }
+};
 
-  // Kunin ang lahat ng orders ng user kasama ang mga items nito
-  static async getOrders(req: Request, res: Response) {
-    try {
-      const { userId } = req.params;
-      
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
+export const getUserOrders = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { user_id } = req.query;
+
+    if (!user_id) {
+      res.status(400).json({ error: 'Missing user_id query parameter.' });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        order_items (
           *,
-          order_items (*)
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+          products (
+            id,
+            title,
+            category,
+            price,
+            image_url,
+            dimensions
+          )
+        )
+      `)
+      .eq('user_id', user_id)
+      .order('created_at', { ascending: false });
 
-      if (error) throw error;
+    if (error) throw error;
 
-      return res.status(200).json({ orders: data });
-    } catch (error: any) {
-      return res.status(400).json({ error: error.message });
-    }
+    res.status(200).json(data || []);
+  } catch (error: any) {
+    console.error('Fetch Orders Error:', error);
+    res.status(500).json({ error: 'Failed to fetch orders.', details: error.message });
   }
-}
+};

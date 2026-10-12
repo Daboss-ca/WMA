@@ -1,11 +1,12 @@
 import { cartManager, type CartItem } from "../../state/cartManager.js";
+import { getCurrentUser } from "../../state/sessionManager.js";
 
 const MIN_QUANTITY = 1;
 const MAX_QUANTITY = 20;
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'PHP',
 });
 
 function formatCurrency(amount: number): string {
@@ -39,7 +40,6 @@ export function createCartPage(): HTMLElement {
   const page = document.createElement('div');
   page.className = 'cart-page';
 
-  // Ginawa nating async ang render para ma-fetch muna ang data sa database bago ipakita
   async function render(): Promise<void> {
     page.innerHTML = '<div style="padding: 4rem; text-align: center;">Loading your cart...</div>';
     
@@ -141,7 +141,6 @@ export function createCartPage(): HTMLElement {
     return list;
   }
 
-  // Ginawa nating async ang pag-click dahil hihintayin ang API update
   async function handleItemsListClick(event: Event, items: CartItem[]): Promise<void> {
     const target = event.target as HTMLElement;
     const actionButton = target.closest<HTMLButtonElement>('[data-action]');
@@ -154,7 +153,6 @@ export function createCartPage(): HTMLElement {
     const item = items.find((i) => i.id === id);
     if (!item) return;
 
-    // Maglagay ng simpleng loading state sa UI habang nag-a-update
     actionButton.style.opacity = '0.5';
     actionButton.style.pointerEvents = 'none';
 
@@ -170,7 +168,6 @@ export function createCartPage(): HTMLElement {
         break;
     }
     
-    // I-render muli kapag tapos na ang database call
     render(); 
   }
 
@@ -191,22 +188,104 @@ export function createCartPage(): HTMLElement {
         <span>Total</span>
         <span>${formatCurrency(subtotal)}</span>
       </div>
+      
+      <!-- Checkout Form Section -->
+      <div class="cart-summary__checkout-form" style="margin-top: 1.5rem; text-align: left;">
+        <label for="shipping-address" style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Shipping Address</label>
+        <input type="text" id="shipping-address" placeholder="Enter your full delivery address" value="Cavite, Philippines" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; font-size: 0.875rem; outline: none; margin-bottom: 1rem;" />
+        
+        <!-- Inline Message Container -->
+        <div id="checkout-message" style="display: none; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.875rem; text-align: center; font-weight: 500; transition: all 0.3s ease;"></div>
+      </div>
     `;
+
+    const checkoutForm = summary.querySelector('.cart-summary__checkout-form') as HTMLElement;
+    const addressInput = summary.querySelector('#shipping-address') as HTMLInputElement;
+    const messageBox = summary.querySelector('#checkout-message') as HTMLElement;
 
     const checkoutButton = document.createElement('button');
     checkoutButton.type = 'button';
     checkoutButton.className = 'btn btn--primary btn--full';
     checkoutButton.textContent = 'Proceed to Checkout';
-    checkoutButton.addEventListener('click', () => {
-      // Mag-trigger ng event para buksan ang Checkout modal o form
-      document.dispatchEvent(new CustomEvent('wma:open-checkout'));
+    checkoutForm.appendChild(checkoutButton);
+
+    // Helper function para sa Inline Messages
+    const showMessage = (type: 'success' | 'error', text: string) => {
+      messageBox.style.display = 'block';
+      messageBox.textContent = text;
+      if (type === 'success') {
+        messageBox.style.backgroundColor = '#dcfce7'; // Light green bg
+        messageBox.style.color = '#166534'; // Dark green text
+        messageBox.style.border = '1px solid #bbf7d0';
+      } else {
+        messageBox.style.backgroundColor = '#fee2e2'; // Light red bg
+        messageBox.style.color = '#991b1b'; // Dark red text
+        messageBox.style.border = '1px solid #fecaca';
+      }
+    };
+
+    checkoutButton.addEventListener('click', async () => {
+      const user = getCurrentUser();
+      
+      if (!user) {
+        showMessage('error', 'Please log in first to proceed with checkout.');
+        return;
+      }
+
+      const shippingAddress = addressInput.value.trim();
+      
+      if (!shippingAddress) {
+        showMessage('error', 'Please provide a shipping address.');
+        addressInput.focus();
+        addressInput.style.borderColor = '#991b1b';
+        return;
+      }
+      addressInput.style.borderColor = '#d1d5db'; // Ibalik sa normal na kulay
+
+      // I-set ang loading state ng UI
+      checkoutButton.disabled = true;
+      checkoutButton.textContent = 'Processing order...';
+      messageBox.style.display = 'none';
+
+      try {
+        const response = await fetch('http://localhost:5000/api/orders/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            shipping_address: shippingAddress,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          showMessage('success', 'Order placed successfully! Redirecting...');
+          await cartManager.fetchCart(); // Linisin ang local cart state
+          
+          // Maghintay ng sandali (1.5s) para mabasa ng user ang "Success" message bago lumipat ng page
+          setTimeout(() => {
+            dispatchCloseCart(page);
+            document.dispatchEvent(new CustomEvent('wma:open-orders'));
+          }, 1500);
+        } else {
+          showMessage('error', result.error || 'Checkout failed. Please try again.');
+          checkoutButton.disabled = false;
+          checkoutButton.textContent = 'Proceed to Checkout';
+        }
+      } catch (error) {
+        console.error('Checkout Error:', error);
+        showMessage('error', 'Network error. Please check your connection.');
+        checkoutButton.disabled = false;
+        checkoutButton.textContent = 'Proceed to Checkout';
+      }
     });
 
-    summary.appendChild(checkoutButton);
     return summary;
   }
 
-  // Initial trigger
   render();
   return page;
 }

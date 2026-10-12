@@ -1,3 +1,4 @@
+// frontend/src/components/InquiryModal.ts
 import { getCurrentUser } from '../../state/sessionManager.js';
 import { uiState } from '../../state/uiStateManager.js';
 
@@ -69,6 +70,10 @@ export function createInquiryModal(): HTMLElement {
     const user = getCurrentUser();
     if (!user) return;
 
+    // I-populate ang user details sa read-only fields
+    if (nameInput) nameInput.value = user.fullName || '';
+    if (emailInput) emailInput.value = user.email || '';
+
     const requestedCategory = customEvent.detail?.category;
     const matchedCategory = INQUIRY_CATEGORIES.find(
       (category) => {
@@ -78,8 +83,6 @@ export function createInquiryModal(): HTMLElement {
       }
     );
 
-    if (nameInput) nameInput.value = user.fullName;
-    if (emailInput) emailInput.value = user.email;
     if (categoryInput) categoryInput.value = matchedCategory ?? 'Custom project';
     if (notesInput) notesInput.value = '';
     if (status) status.textContent = '';
@@ -95,26 +98,49 @@ export function createInquiryModal(): HTMLElement {
     modal.setAttribute('aria-hidden', 'true');
   });
 
-  form?.addEventListener('submit', (event) => {
+  // Na-update na submit handler para tumawag sa backend API
+  form?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const user = getCurrentUser();
     if (!user || !categoryInput || !notesInput || !status) return;
 
     const payload = {
-      name: user.fullName,
+      user_id: user.id || null,
+      full_name: user.fullName,
       email: user.email,
-      category: categoryInput.value,
-      notes: notesInput.value.trim(),
-      submittedAt: new Date().toISOString(),
+      project_type: categoryInput.value,
+      details: notesInput.value.trim(),
     };
 
-    console.info('WMA inquiry submitted', payload);
-    status.textContent = `Thanks, ${user.fullName}. Your inquiry has been received.`;
-    submitButton?.setAttribute('disabled', 'true');
+    try {
+      submitButton?.setAttribute('disabled', 'true');
+      status.textContent = 'Submitting inquiry...';
 
-    window.setTimeout(() => {
-      uiState.closeInquiryModal();
-    }, 1200);
+      const response = await fetch('http://localhost:5000/api/inquiries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit inquiry.');
+      }
+
+      status.textContent = `Thanks, ${user.fullName}. Your inquiry has been received.`;
+
+      window.setTimeout(() => {
+        uiState.closeInquiryModal();
+      }, 1200);
+
+    } catch (error: any) {
+      console.error('Inquiry submission error:', error);
+      status.textContent = error.message || 'An error occurred. Please try again.';
+      submitButton?.removeAttribute('disabled');
+    }
   });
 
   return modal;

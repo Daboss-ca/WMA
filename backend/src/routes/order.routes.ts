@@ -1,9 +1,13 @@
+// backend/src/routes/order.routes.ts
 import { Router } from 'express';
-import { OrderController } from '../controllers/order.controller.js';
+import { createOrder, getUserOrders } from '../controllers/order.controller';
 
 const router = Router();
 
-router.post('/checkout', OrderController.checkout);
-router.get('/:userId', OrderController.getOrders);
+// POST endpoint para sa checkout
+router.post('/checkout', createOrder);
+
+// GET endpoint para makuha ang orders ng user
+router.get('/', getUserOrders);
 
 export default router;

@@ -37,10 +37,10 @@ export const cartManager = {
         id: item.id,
         productId: item.product_id,
         quantity: item.quantity,
-        name: item.product_name || item.product_id,
-        category: 'Furniture',
-        dimensions: 'Standard',
-        unitPrice: item.price || 100, 
+        name: item.name || item.product_id,
+        category: item.category || 'Furniture',
+        dimensions: item.dimensions || 'Standard',
+        unitPrice: item.price || 0, 
         imageUrl: item.image_url || '/placeholder.jpg' 
       }));
 
@@ -50,7 +50,7 @@ export const cartManager = {
     }
   },
   
-  // ADD: Magdagdag ng item papunta sa backend (tinanggal ang success alert)
+  // ADD: Magdagdag ng item papunta sa backend kasama ang kumpletong detalye
   addItem: async (newItem: { id: string; [key: string]: any }): Promise<void> => {
     const user = getCurrentUser();
 
@@ -70,6 +70,11 @@ export const cartManager = {
         body: JSON.stringify({
           userId: user.id,
           productId: prodId,
+          name: newItem.name,
+          category: newItem.category,
+          dimensions: newItem.dimensions,
+          unitPrice: newItem.unitPrice,
+          imageUrl: newItem.imageUrl,
           quantity: newQuantity
         })
       });
@@ -79,7 +84,7 @@ export const cartManager = {
         throw new Error(data.error || 'Failed to add item to cart.');
       }
       
-      await cartManager.fetchCart(); // I-refresh ang data at i-update ang header badge nang walang alert
+      await cartManager.fetchCart(); // I-refresh ang data at i-update ang header badge
     } catch (error) {
       console.error('Error adding to cart:', error);
       alert(error instanceof Error ? error.message : 'Could not add to cart. Please try again.');
@@ -102,6 +107,11 @@ export const cartManager = {
         body: JSON.stringify({
           userId: user.id,
           productId: targetItem.productId,
+          name: targetItem.name,
+          category: targetItem.category,
+          dimensions: targetItem.dimensions,
+          unitPrice: targetItem.unitPrice,
+          imageUrl: targetItem.imageUrl,
           quantity: validQuantity
         })
       });

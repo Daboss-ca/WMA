@@ -1,4 +1,8 @@
-import { getCurrentUser } from "../../state/sessionManager";
+import { getCurrentUser } from "../../state/sessionManager.js";
+import { renderToPayTab } from "./ToPayTab.js";
+import { renderToShipTab } from "./ToShipTab.js";
+import { renderToReceiveTab } from "./ToReceiveTab.js";
+import { renderToReviewTab } from "./ToReviewTab.js";
 
 export type OrderStatusTab = "all" | "pay" | "ship" | "receive" | "review";
 
@@ -15,21 +19,6 @@ export interface OrderItem {
   dimensions: string;
 }
 
-// Sample mock data — pwede itong itakda bilang empty array ([]) kung wala pang totoong order
-const MOCK_ORDERS: OrderItem[] = [
-  {
-    id: "ord-1",
-    orderNumber: "WMA-2026-001",
-    date: "Sept 18, 2026",
-    status: "pay",
-    statusLabel: "Awaiting Payment",
-    title: "Oak Display Kiosk",
-    category: "Kiosk",
-    price: 45000,
-    dimensions: "120×210×60 cm",
-  },
-];
-
 const TABS: { id: OrderStatusTab; label: string }[] = [
   { id: "all", label: "All" },
   { id: "pay", label: "To pay" },
@@ -39,6 +28,7 @@ const TABS: { id: OrderStatusTab; label: string }[] = [
 ];
 
 function escapeHtml(value: string): string {
+  if (!value) return "";
   return value.replace(/[&<>'"]/g, (character) => ({
     "&": "&amp;",
     "<": "&lt;",
@@ -48,7 +38,8 @@ function escapeHtml(value: string): string {
   })[character] ?? character);
 }
 
-function renderOrderCard(order: OrderItem): string {
+// Inilabas ko ang render function na ito para mapasa sa mga child tabs
+export function renderOrderCard(order: OrderItem): string {
   const formattedPrice = new Intl.NumberFormat("en-PH", {
     style: "currency",
     currency: "PHP",
@@ -83,7 +74,7 @@ function renderOrderCard(order: OrderItem): string {
         </div>
         <div class="order-card__info">
           <h3 class="order-card__title">${escapeHtml(order.title)}</h3>
-          <p class="order-card__meta">Dimension: ${escapeHtml(order.dimensions)}</p>
+          <p class="order-card__meta">${escapeHtml(order.dimensions)}</p>
           <p class="order-card__price">${formattedPrice}</p>
         </div>
       </div>
@@ -97,6 +88,16 @@ function renderOrderCard(order: OrderItem): string {
   `;
 }
 
+// Inilabas din ito para maging malinis ang main function
+function mapDatabaseStatus(dbStatus: string): "pay" | "ship" | "receive" | "review" {
+  const statusLower = (dbStatus || "").toLowerCase();
+  if (statusLower.includes("pay") || statusLower.includes("pending")) return "pay";
+  if (statusLower.includes("ship") || statusLower.includes("craft")) return "ship";
+  if (statusLower.includes("receive") || statusLower.includes("deliver")) return "receive";
+  if (statusLower.includes("review") || statusLower.includes("complete")) return "review";
+  return "pay";
+}
+
 export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElement {
   const user = getCurrentUser();
   const page = document.createElement("main");
@@ -106,12 +107,47 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
   if (!user) return page;
 
   let activeTab: OrderStatusTab = initialTab;
+  let orders: OrderItem[] = [];
+  let isLoading = true;
+
+  const fetchUserOrders = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/orders?user_id=${user.id}`);
+      const data = await response.json();
+
+      if (response.ok && Array.isArray(data)) {
+        orders = data.map((item: any) => {
+          const firstOrderItem = item.order_items?.[0];
+          const product = firstOrderItem?.products;
+          const quantity = firstOrderItem?.quantity || 1;
+
+          return {
+            id: item.id,
+            orderNumber: `WMA-${item.id.slice(0, 6).toUpperCase()}`,
+            date: new Date(item.created_at).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }),
+            status: mapDatabaseStatus(item.status),
+            statusLabel: item.status || "Pending",
+            title: product?.title || `Item ${firstOrderItem?.product_id || ""}`,
+            category: product?.category || "Category",
+            price: item.total_amount || 0,
+            imageUrl: product?.image_url,
+            dimensions: product?.dimensions ? `Dimensions: ${product.dimensions} (Qty: ${quantity})` : `Qty: ${quantity}`,
+          };
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    } finally {
+      isLoading = false;
+      renderContent();
+    }
+  };
 
   const renderContent = () => {
-    const filteredOrders = MOCK_ORDERS.filter(
-      (order) => activeTab === "all" || order.status === activeTab
-    );
-
     const tabsHtml = TABS.map(
       (tab) => `
         <button 
@@ -125,20 +161,38 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
     ).join("");
 
     let listHtml = "";
-    if (filteredOrders.length === 0) {
-      listHtml = `
-        <div class="orders-empty">
-          <p class="orders-empty__title">No orders found</p>
-          <p class="orders-empty__desc">You don't have any orders under "${TABS.find((t) => t.id === activeTab)?.label}" yet.</p>
-          <a href="#catalog" class="btn btn--outline orders-empty__cta" data-action="go-catalog">Browse Catalog</a>
-        </div>
-      `;
+    if (isLoading) {
+      listHtml = `<div class="orders-loading"><p>Loading your orders...</p></div>`;
     } else {
-      listHtml = `
-        <div class="orders-list">
-          ${filteredOrders.map(renderOrderCard).join("")}
-        </div>
-      `;
+      // Dito ginagamit ang mga hiwa-hiwalay na renderers natin
+      switch (activeTab) {
+        case "pay":
+          listHtml = renderToPayTab(orders, renderOrderCard);
+          break;
+        case "ship":
+          listHtml = renderToShipTab(orders, renderOrderCard);
+          break;
+        case "receive":
+          listHtml = renderToReceiveTab(orders, renderOrderCard);
+          break;
+        case "review":
+          listHtml = renderToReviewTab(orders, renderOrderCard);
+          break;
+        case "all":
+        default:
+          if (orders.length === 0) {
+            listHtml = `
+              <div class="orders-empty">
+                <p class="orders-empty__title">No orders found</p>
+                <p class="orders-empty__desc">You don't have any orders yet.</p>
+                <a href="#catalog" class="btn btn--outline orders-empty__cta" data-action="go-catalog">Browse Catalog</a>
+              </div>
+            `;
+          } else {
+            listHtml = `<div class="orders-list">${orders.map(renderOrderCard).join("")}</div>`;
+          }
+          break;
+      }
     }
 
     page.innerHTML = `
@@ -160,7 +214,6 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
       </div>
     `;
 
-    // Event listeners
     page.querySelector("#back-to-dashboard-btn")?.addEventListener("click", () => {
       document.dispatchEvent(new CustomEvent("wma:close-orders"));
     });
@@ -181,5 +234,7 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
   };
 
   renderContent();
+  fetchUserOrders();
+
   return page;
 }

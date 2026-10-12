@@ -1,4 +1,4 @@
-import { getCurrentUser } from "../state/sessionManager.js";
+import { findUserByEmail, getCurrentUser } from "../state/sessionManager.js";
 import { catalogItems } from "../data/furnitureData.js";
 import { createCatalogProductFeed } from "./Catalog.js";
 
@@ -14,7 +14,6 @@ interface OrderStatus {
 interface CategoryFilter {
   id: string;
   label: string;
-  /** Lower-case fragment matched against the item's category, so "Tables" and "table" both hit. */
   match: string;
 }
 
@@ -77,6 +76,7 @@ function itemMatchesFilter(item: CatalogItem, filterId: string): boolean {
   return Boolean(filter) && getCategoryKey(item).includes(filter!.match);
 }
 
+// Added data-status-count attribute for easy DOM targeting
 function renderOrderStatus(status: OrderStatus): string {
   const noun = status.count === 1 ? "order" : "orders";
   return `
@@ -84,7 +84,7 @@ function renderOrderStatus(status: OrderStatus): string {
       <span class="dashboard-order-status__icon" aria-hidden="true">${status.icon}</span>
       <span class="dashboard-order-status__text">
         <strong>${escapeHtml(status.label)}</strong>
-        <small>${status.count} ${noun}</small>
+        <small data-status-count="${status.id}">${status.count} ${noun}</small>
       </span>
     </button>`;
 }
@@ -121,7 +121,6 @@ export function createDashboardPage(): HTMLElement {
 
   if (!user) return page;
 
-  // Ligtas na kunin ang pangalan kahit na undefined ang fullName (gagamitin ang username kung wala)
   const safeName = user.fullName || user.username || "User";
   const firstName = safeName.trim().split(/\s+/)[0] || safeName;
 
@@ -205,7 +204,6 @@ export function createDashboardPage(): HTMLElement {
     renderFeed(true);
   });
 
-  // BAGO: Event listener para buksan ang bagong Orders Page mula sa dashboard
   page.querySelectorAll<HTMLButtonElement>("[data-order-status]").forEach((button) => {
     button.addEventListener("click", () => {
       const status = button.dataset.orderStatus;
@@ -213,6 +211,58 @@ export function createDashboardPage(): HTMLElement {
         new CustomEvent("wma:open-orders", { detail: { status } })
       );
     });
+  });
+
+  const fetchOrderCounts = async () => {
+    try {    
+      const response = await fetch(`http://localhost:5000/api/orders?user_id=${user.id}`);
+      const data = await response.json();
+
+      if (response.ok && Array.isArray(data)) {
+        const counts: Record<string, number> = { pay: 0, ship: 0, receive: 0, review: 0 };
+        
+        data.forEach((order: any) => {
+          const statusLower = (order.status || "").toLowerCase();
+          let mappedStatus = "pay";
+          
+          if (statusLower.includes("pay") || statusLower.includes("pending")) mappedStatus = "pay";
+          else if (statusLower.includes("ship") || statusLower.includes("craft")) mappedStatus = "ship";
+          else if (statusLower.includes("receive") || statusLower.includes("deliver")) mappedStatus = "receive";
+          else if (statusLower.includes("review") || statusLower.includes("complete")) mappedStatus = "review";
+          
+          if (counts[mappedStatus] !== undefined) {
+            counts[mappedStatus]++;
+          }
+        });
+
+        Object.keys(counts).forEach(key => {
+          const countEl = page.querySelector(`[data-status-count="${key}"]`);
+          if (countEl) {
+            const num = counts[key];
+            const noun = num === 1 ? "order" : "orders";
+            countEl.textContent = `${num} ${noun}`;
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching order counts for dashboard:", error);
+    }
+  };
+
+  fetchOrderCounts();
+
+  document.addEventListener("wma:cart-updated", () => {
+    console.log("Cart updated/cleared! Refreshing order counts...");
+    fetchOrderCounts();
+  });
+
+  document.addEventListener("wma:order-created", () => {
+    console.log("New checkout detected! Refreshing order counts...");
+    fetchOrderCounts();
+  });
+
+  window.addEventListener("focus", () => {
+    fetchOrderCounts();
   });
 
   return page;
