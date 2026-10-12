@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabaseClient';
 
-// CREATE ORDER: Para sa pag-checkout mula sa cart patungo sa orders at order_items
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
   try {
     const { user_id, shipping_address, contact_number, payment_method, selected_items } = req.body;
@@ -11,7 +10,6 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // Step 1: Kunin ang laman ng cart ng user para sa mga napiling items lamang
     const { data: cartItems, error: cartError } = await supabase
       .from('cart_items')
       .select(`
@@ -30,7 +28,6 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // Step 2: Kalkulahin ang total amount gamit ang totoong presyo ng produkto
     let total_amount = 0;
     const orderItemsToInsert = cartItems.map((item: any) => {
       const unitPrice = item.products?.price || item.price || 0;
@@ -43,7 +40,6 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       };
     });
 
-    // Step 3: Gumawa ng order record sa 'orders' table kasama ang payment_method at contact_number
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
       .insert([
@@ -62,7 +58,6 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
     if (orderError) throw orderError;
     const order_id = orderData.id;
 
-    // Step 4: Ilipat ang mga napiling items sa 'order_items' table
     const finalOrderItems = orderItemsToInsert.map((item) => ({
       ...item,
       order_id,
@@ -74,7 +69,6 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
 
     if (orderItemsError) throw orderItemsError;
 
-    // Step 5: Burahin lamang sa 'cart_items' ang mga item na matagumpay na na-checkout
     const { error: clearCartError } = await supabase
       .from('cart_items')
       .delete()
@@ -92,7 +86,6 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-// GET USER ORDERS: Kunin ang lahat ng orders ng user para sa Orders Page
 export const getUserOrders = async (req: Request, res: Response): Promise<void> => {
   try {
     const { user_id } = req.query;
@@ -127,5 +120,57 @@ export const getUserOrders = async (req: Request, res: Response): Promise<void> 
   } catch (error: any) {
     console.error('Fetch Orders Error:', error);
     res.status(500).json({ error: 'Failed to fetch orders.', details: error.message });
+  }
+};
+
+export const uploadPaymentProof = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { order_id, user_id, proof_url, reference_number } = req.body;
+
+    if (!order_id || !user_id || !proof_url || !reference_number) {
+      res.status(400).json({ error: 'Please provide all required payment details (Order ID, Proof URL, and Reference Number).' });
+      return;
+    }
+
+    const { data: existingRef, error: refCheckError } = await supabase
+      .from('payments')
+      .select('id')
+      .eq('reference_number', reference_number)
+      .maybeSingle();
+
+    if (refCheckError) throw refCheckError;
+
+    if (existingRef) {
+      res.status(400).json({ error: 'This Reference Number has already been used for another transaction. Please enter a valid unique reference number.' });
+      return;
+    }
+
+    const { error: paymentError } = await supabase
+      .from('payments')
+      .insert([
+        {
+          order_id,
+          user_id,
+          proof_url,
+          reference_number,
+          status: 'Pending Review',
+        },
+      ]);
+
+    if (paymentError) throw paymentError;
+
+    const { error: orderUpdateError } = await supabase
+      .from('orders')
+      .update({ status: 'Pending Review' })
+      .eq('id', order_id);
+
+    if (orderUpdateError) throw orderUpdateError;
+
+    res.status(201).json({
+      message: 'Payment proof uploaded successfully! Awaiting admin review.',
+    });
+  } catch (error: any) {
+    console.error('Payment Upload Error:', error);
+    res.status(500).json({ error: 'Failed to upload payment proof.', details: error.message });
   }
 };
