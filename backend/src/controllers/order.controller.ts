@@ -88,12 +88,15 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
 
 export const getUserOrders = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { user_id } = req.query;
+    const rawUserId = req.query.user_id;
+    const userId = Array.isArray(rawUserId) ? rawUserId[0] : rawUserId;
 
-    if (!user_id) {
+    if (!userId || typeof userId !== 'string' || !userId.trim()) {
       res.status(400).json({ error: 'Missing user_id query parameter.' });
       return;
     }
+
+    const safeUserId = userId.trim();
 
     const { data, error } = await supabase
       .from('orders')
@@ -111,12 +114,12 @@ export const getUserOrders = async (req: Request, res: Response): Promise<void> 
           )
         )
       `)
-      .eq('user_id', user_id)
+      .eq('user_id', safeUserId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    res.status(200).json(data || []);
+    res.status(200).json(Array.isArray(data) ? data : []);
   } catch (error: any) {
     console.error('Fetch Orders Error:', error);
     res.status(500).json({ error: 'Failed to fetch orders.', details: error.message });

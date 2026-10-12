@@ -155,3 +155,17 @@ export const cartManager = {
 document.addEventListener('wma:session-cleared', () => {
   cartManager.clearCart();
 });
+
+document.addEventListener('wma:auth-changed', (event: Event) => {
+  const detail = (event as CustomEvent).detail as { user?: { id?: string } | null; userId?: string | null; reason?: string } | undefined;
+  const nextUserId = detail?.userId ?? detail?.user?.id ?? null;
+
+  if (!nextUserId) {
+    cartManager.clearCart();
+    return;
+  }
+
+  if (detail?.reason === 'login') {
+    cartManager.clearCart();
+  }
+});

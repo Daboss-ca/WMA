@@ -4,9 +4,35 @@ const USERS_KEY = 'wma_registered_users';
 const ACTIVE_USER_KEY = 'wma_active_user';
 const CART_CACHE_KEYS = ['wma_cart_items'];
 export const SESSION_CHANGED_EVENT = 'wma:session-changed';
+export const AUTH_CHANGED_EVENT = 'wma:auth-changed';
+export const LOGOUT_EVENT = 'wma:logout';
 
 function notifySessionChanged(): void {
   document.dispatchEvent(new CustomEvent(SESSION_CHANGED_EVENT));
+}
+
+function emitAuthChanged(nextUser: User | null, reason: 'login' | 'logout' = 'login'): void {
+  document.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT, {
+    detail: {
+      user: nextUser,
+      userId: nextUser?.id ?? null,
+      reason,
+      timestamp: Date.now(),
+    },
+  }));
+
+  if (reason === 'logout') {
+    document.dispatchEvent(new CustomEvent(LOGOUT_EVENT, {
+      detail: {
+        user: null,
+        userId: null,
+        reason: 'logout',
+        timestamp: Date.now(),
+      },
+    }));
+  }
+
+  notifySessionChanged();
 }
 
 function clearCachedCartState(): void {
@@ -70,7 +96,7 @@ export function setCurrentUser(user: User, rememberMe: boolean): void {
     sessionStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(sessionUser));
   }
 
-  notifySessionChanged();
+  emitAuthChanged(sessionUser, 'login');
 }
 
 // Mag-logout (linisin ang active session)
@@ -79,7 +105,7 @@ export function clearSession(): void {
   sessionStorage.removeItem(ACTIVE_USER_KEY);
   clearCachedCartState();
   document.dispatchEvent(new CustomEvent('wma:session-cleared'));
-  notifySessionChanged();
+  emitAuthChanged(null, 'logout');
 }
 
 // Helper function para malaman kung naka-log in ang bisita

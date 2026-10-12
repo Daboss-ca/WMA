@@ -1,4 +1,4 @@
-import { getCurrentUser } from "../../state/sessionManager.js";
+import { AUTH_CHANGED_EVENT, getCurrentUser, LOGOUT_EVENT, SESSION_CHANGED_EVENT } from "../../state/sessionManager.js";
 import { renderToPayTab } from "./ToPayTab.js";
 import { renderToShipTab } from "./ToShipTab.js";
 import { renderToReceiveTab } from "./ToReceiveTab.js";
@@ -113,17 +113,38 @@ function mapDatabaseStatus(dbStatus: string): "pay" | "ship" | "receive" | "revi
 }
 
 export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElement {
-  const user = getCurrentUser();
   const page = document.createElement("main");
   page.className = "site-main orders-page";
   page.id = "orders-page";
 
-  if (!user) return page;
+  const getActiveUser = (): { id: string } | null => {
+    const user = getCurrentUser();
+    return user && user.id ? user : null;
+  };
+
+  const user = getActiveUser();
+  if (!user) {
+    page.innerHTML = `
+      <div class="wrap orders-page__inner">
+        <div class="orders-header">
+          <h1 class="orders-title">Your Orders</h1>
+        </div>
+        <section class="orders-content">
+          <div class="orders-empty">
+            <p class="orders-empty__title">Please sign in</p>
+            <p class="orders-empty__desc">Sign in to view your order history.</p>
+          </div>
+        </section>
+      </div>
+    `;
+    return page;
+  }
 
   let activeTab: OrderStatusTab = initialTab;
   let orders: OrderItem[] = [];
   let isLoading = true;
   let paymentProofModal: HTMLElement | null = null;
+  let currentUserId = user.id;
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     let toast = document.getElementById("payment-proof-toast");
@@ -360,40 +381,81 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
     referenceInput?.focus();
   };
 
-  const fetchUserOrders = async () => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/orders?user_id=${user.id}`);
-      const data = await response.json();
+  const resetOrdersState = (loading = false) => {
+    orders = [];
+    isLoading = loading;
+    renderContent();
+  };
 
-      if (response.ok && Array.isArray(data)) {
-        orders = data.map((item: any) => {
-          const firstOrderItem = item.order_items?.[0];
-          const product = firstOrderItem?.products;
-          const quantity = firstOrderItem?.quantity || 1;
-
-          return {
-            id: item.id,
-            date: new Date(item.created_at).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            }),
-            status: mapDatabaseStatus(item.status),
-            statusLabel: item.status || "Pending",
-            title: product?.title || `Item ${firstOrderItem?.product_id || ""}`,
-            category: product?.category || "Category",
-            price: item.total_amount || 0,
-            imageUrl: product?.image_url,
-            dimensions: product?.dimensions ? `Dimensions: ${product.dimensions} (Qty: ${quantity})` : `Qty: ${quantity}`,
-            paymentMethod: item.payment_method || item.paymentMethod || "gcash",
-          };
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-    } finally {
+  const fetchUserOrders = async (requestedUserId: string = currentUserId) => {
+    const activeUser = getActiveUser();
+    if (!activeUser) {
+      orders = [];
       isLoading = false;
       renderContent();
+      return;
+    }
+
+    currentUserId = activeUser.id;
+    const targetUserId = requestedUserId || activeUser.id;
+
+    if (activeUser.id !== targetUserId) {
+      return;
+    }
+
+    isLoading = true;
+    renderContent();
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/orders?user_id=${encodeURIComponent(targetUserId)}`);
+      const data = await response.json();
+
+      const latestUser = getActiveUser();
+      if (!latestUser || latestUser.id !== targetUserId) {
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to load orders.");
+      }
+
+      orders = Array.isArray(data)
+        ? data.map((item: any) => {
+            const firstOrderItem = item.order_items?.[0];
+            const product = firstOrderItem?.products;
+            const quantity = firstOrderItem?.quantity || 1;
+
+            return {
+              id: item.id,
+              date: new Date(item.created_at).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }),
+              status: mapDatabaseStatus(item.status),
+              statusLabel: item.status || "Pending",
+              title: product?.title || `Item ${firstOrderItem?.product_id || ""}`,
+              category: product?.category || "Category",
+              price: item.total_amount || 0,
+              imageUrl: product?.image_url,
+              dimensions: product?.dimensions ? `Dimensions: ${product.dimensions} (Qty: ${quantity})` : `Qty: ${quantity}`,
+              paymentMethod: item.payment_method || item.paymentMethod || "gcash",
+            };
+          })
+        : [];
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      orders = [];
+    } finally {
+      const latestUser = getActiveUser();
+      if (latestUser && latestUser.id === targetUserId) {
+        isLoading = false;
+        renderContent();
+      } else {
+        orders = [];
+        isLoading = false;
+        renderContent();
+      }
     }
   };
 
@@ -491,6 +553,41 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
       document.dispatchEvent(new CustomEvent("wma:close-orders"));
     });
   };
+
+  const handleSessionReset = () => {
+    const activeUser = getActiveUser();
+    if (!activeUser) {
+      currentUserId = "";
+      resetOrdersState(false);
+      return;
+    }
+
+    currentUserId = activeUser.id;
+    resetOrdersState(true);
+    fetchUserOrders(activeUser.id);
+  };
+
+  const handleAuthChanged = (event: Event) => {
+    const detail = (event as CustomEvent).detail as { user?: { id?: string } | null; userId?: string | null; reason?: string } | undefined;
+    const nextUserId = detail?.userId ?? detail?.user?.id ?? null;
+
+    if (!nextUserId) {
+      currentUserId = "";
+      orders = [];
+      isLoading = false;
+      renderContent();
+      return;
+    }
+
+    if (detail?.reason === 'login' || detail?.reason === 'logout') {
+      handleSessionReset();
+    }
+  };
+
+  document.addEventListener(LOGOUT_EVENT, handleAuthChanged);
+  document.addEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
+  document.addEventListener("wma:session-cleared", handleSessionReset);
+  document.addEventListener(SESSION_CHANGED_EVENT, handleSessionReset);
 
   renderContent();
   fetchUserOrders();
