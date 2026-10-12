@@ -291,6 +291,7 @@ export function updateHeaderUI(): void {
     const logoutBtn = authContainer.querySelector("#logout-btn");
     logoutBtn?.addEventListener("click", () => {
       clearSession();
+      cartManager.clearCart();
       uiState.closeProfile();
     });
 

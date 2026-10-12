@@ -1,6 +1,21 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabaseClient';
 
+export const mapCartItem = (item: any) => {
+  const product = item?.products ?? {};
+
+  return {
+    id: item?.id,
+    product_id: item?.product_id,
+    quantity: item?.quantity ?? 1,
+    name: product?.title || 'Custom Item',
+    category: product?.category || 'General',
+    dimensions: product?.dimensions || 'Standard',
+    price: typeof product?.price === 'number' ? product.price : 0,
+    image_url: product?.image_url || '',
+  };
+};
+
 // ADD / UPSERT: Awtomatikong isinusulat sa 'products' table, pagkatapos ay idaragdag sa 'cart_items'
 export const addToCart = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -69,7 +84,9 @@ export const getCart = async (req: Request, res: Response): Promise<void> => {
     const { data, error } = await supabase
       .from('cart_items')
       .select(`
-        *,
+        id,
+        product_id,
+        quantity,
         products (
           title,
           category,
@@ -83,16 +100,7 @@ export const getCart = async (req: Request, res: Response): Promise<void> => {
     if (error) throw error;
 
     // I-format ang data para madaling basahin ng frontend
-    const formattedItems = (data || []).map((item: any) => ({
-      id: item.id,
-      product_id: item.product_id,
-      quantity: item.quantity,
-      name: item.products?.title || 'Custom Item',
-      category: item.products?.category || 'General',
-      dimensions: item.products?.dimensions || 'Standard',
-      price: item.products?.price || 0,
-      image_url: item.products?.image_url || '',
-    }));
+    const formattedItems = (data || []).map(mapCartItem);
 
     res.status(200).json({ items: formattedItems });
   } catch (error: any) {

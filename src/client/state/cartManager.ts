@@ -33,15 +33,16 @@ export const cartManager = {
         throw new Error(data.error || 'Failed to fetch cart.');
       }
       
-      cartItems = data.items.map((item: any) => ({
+      const fetchedItems = Array.isArray(data?.items) ? data.items : [];
+      cartItems = fetchedItems.map((item: any) => ({
         id: item.id,
         productId: item.product_id,
-        quantity: item.quantity,
-        name: item.name || item.product_id,
-        category: item.category || 'Furniture',
+        quantity: item.quantity || 1,
+        name: item.name || item.product_id || 'Custom Item',
+        category: item.category || 'General',
         dimensions: item.dimensions || 'Standard',
-        unitPrice: item.price || 0, 
-        imageUrl: item.image_url || '/placeholder.jpg' 
+        unitPrice: Number(item.price) || 0,
+        imageUrl: item.image_url || '/placeholder.jpg'
       }));
 
       document.dispatchEvent(new CustomEvent('wma:cart-updated'));
@@ -150,3 +151,7 @@ export const cartManager = {
     document.dispatchEvent(new CustomEvent('wma:cart-updated'));
   }
 };
+
+document.addEventListener('wma:session-cleared', () => {
+  cartManager.clearCart();
+});

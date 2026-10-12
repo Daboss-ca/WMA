@@ -2,10 +2,18 @@ import type { User } from '../types/auth/auth.types.js';
 
 const USERS_KEY = 'wma_registered_users';
 const ACTIVE_USER_KEY = 'wma_active_user';
+const CART_CACHE_KEYS = ['wma_cart_items'];
 export const SESSION_CHANGED_EVENT = 'wma:session-changed';
 
 function notifySessionChanged(): void {
   document.dispatchEvent(new CustomEvent(SESSION_CHANGED_EVENT));
+}
+
+function clearCachedCartState(): void {
+  for (const key of CART_CACHE_KEYS) {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  }
 }
 
 // --- MOCK DATABASE (Users Collection) ---
@@ -46,6 +54,7 @@ export function getCurrentUser(): User | null {
 export function setCurrentUser(user: User, rememberMe: boolean): void {
   localStorage.removeItem(ACTIVE_USER_KEY);
   sessionStorage.removeItem(ACTIVE_USER_KEY);
+  clearCachedCartState();
 
   // Tanggalin ang password bago i-save sa session para sa security
   const sessionUser: User = {
@@ -68,6 +77,8 @@ export function setCurrentUser(user: User, rememberMe: boolean): void {
 export function clearSession(): void {
   localStorage.removeItem(ACTIVE_USER_KEY);
   sessionStorage.removeItem(ACTIVE_USER_KEY);
+  clearCachedCartState();
+  document.dispatchEvent(new CustomEvent('wma:session-cleared'));
   notifySessionChanged();
 }
 
