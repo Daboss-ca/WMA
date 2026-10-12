@@ -90,7 +90,7 @@ export function createHeader(props: HeaderProps): HTMLElement {
   initHeaderScrollEffect(header);
   attachRippleToAll(header);
 
-  const sectionIds = new Set(["catalog", "process", "dashboard", "project-tracker", "contact"]);
+  const sectionIds = new Set(["catalog", "process", "dashboard", "contact"]);
   const navLinkElements = Array.from(header.querySelectorAll<HTMLAnchorElement>(".site-nav__link"));
 
   const setActiveNavLink = (sectionId: string): void => {

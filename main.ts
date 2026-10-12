@@ -30,10 +30,7 @@ function renderApp() {
     createHeader({
       navLinks: [
         ...(currentUser
-          ? [
-              { label: "Dashboard", href: "#dashboard", current: true },
-              { label: "Project tracker", href: "#project-tracker" },
-            ]
+          ? [{ label: "Dashboard", href: "#dashboard", current: true }]
           : [
               { label: "Collection", href: "#catalog", current: true },
               { label: "Our process", href: "#process" },
@@ -46,7 +43,6 @@ function renderApp() {
       quickLinks: currentUser
         ? [
             { label: "Dashboard", href: "#dashboard" },
-            { label: "Project tracker", href: "#project-tracker" },
             { label: "Contact", href: "#contact" },
           ]
         : [

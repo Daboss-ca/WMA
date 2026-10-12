@@ -169,158 +169,6 @@
 .dashboard-order-status strong { font-size: var(--fs-200); font-weight: 600; white-space: nowrap; }
 .dashboard-order-status small { color: var(--text-muted); font-size: var(--fs-100); white-space: nowrap; }
 
-/* --------------------------------------------------------------------------
-   Active project — the one glass panel on the page
-   -------------------------------------------------------------------------- */
-
-.dashboard-project {
-  padding: clamp(1.25rem, 3vw, 2rem);
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 26%, var(--color-border));
-  border-radius: var(--radius-md);
-  /* Layers, top to bottom: faint irregular grain, amber glow from the corner, frosted surface. */
-  background:
-    repeating-linear-gradient(91deg, transparent 0 7px, color-mix(in srgb, var(--accent-primary) 3.5%, transparent) 7px 8px),
-    repeating-linear-gradient(93deg, transparent 0 13px, color-mix(in srgb, var(--accent-primary) 3%, transparent) 13px 14px),
-    radial-gradient(circle at 100% 0%, var(--dash-tint-strong), transparent 55%),
-    var(--dash-glass);
-  -webkit-backdrop-filter: blur(16px) saturate(1.15);
-  backdrop-filter: blur(16px) saturate(1.15);
-  box-shadow: var(--shadow-sm);
-}
-
-.dashboard-project__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-}
-
-.dashboard-project__label {
-  margin: 0 0 var(--space-1);
-  color: var(--text-muted);
-  font-size: var(--fs-100);
-  font-weight: 600;
-}
-
-.dashboard-project h2 { font-size: var(--fs-600); line-height: 1.15; }
-
-.dashboard-status {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex: 0 0 auto;
-  padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--dash-tint-strong);
-  border-radius: var(--radius-pill);
-  background: var(--dash-tint);
-  color: var(--accent-primary);
-  font-size: var(--fs-100);
-  font-weight: 700;
-}
-
-.dashboard-status::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-/* Stepper: nodes sit at the centre of four equal columns, so the track runs from 12.5% to 87.5%. */
-.project-tracker { position: relative; }
-
-.project-tracker__line {
-  position: absolute;
-  top: 19px;
-  right: 12.5%;
-  left: 12.5%;
-  height: 2px;
-  overflow: hidden;
-  border-radius: 2px;
-  background: var(--color-border);
-}
-
-.project-tracker__line span {
-  display: block;
-  height: 100%;
-  background: var(--accent-primary);
-  transform: scaleX(var(--tracker-progress, 0));
-  transform-origin: left;
-}
-
-.project-tracker__stages {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.project-tracker__stage {
-  display: grid;
-  justify-items: center;
-  gap: var(--space-1);
-  padding-inline: var(--space-2);
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.project-tracker__node {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  margin-bottom: var(--space-2);
-  place-items: center;
-  border: 2px solid var(--color-border);
-  border-radius: 50%;
-  background: var(--bg-surface);
-  color: var(--text-muted);
-  font-size: var(--fs-200);
-  font-weight: 700;
-}
-
-.project-tracker__node svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2.4;
-}
-
-.project-tracker__stage strong { color: var(--text-main); font-size: var(--fs-200); }
-.project-tracker__stage small { font-size: var(--fs-100); }
-
-.project-tracker__stage--complete .project-tracker__node {
-  border-color: var(--accent-primary);
-  background: var(--accent-primary);
-  color: var(--text-inverse);
-}
-
-.project-tracker__stage--active .project-tracker__node {
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-  box-shadow: 0 0 0 4px var(--dash-tint-strong);
-}
-
-.project-tracker__stage--active small { color: var(--accent-primary); font-weight: 700; }
-.project-tracker__stage--upcoming strong { color: var(--text-muted); font-weight: 600; }
-
-.dashboard-project__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-top: var(--space-6);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--dash-line);
-}
-
-.dashboard-project__footer p { margin: 0; color: var(--text-muted); font-size: var(--fs-200); }
-.dashboard-tracker__action { flex: 0 0 auto; }
 
 /* --------------------------------------------------------------------------
    Catalog feed + category filters
@@ -443,20 +291,11 @@
    Motion: one load moment (track fills, active step pulses) and feedback on filtering
    -------------------------------------------------------------------------- */
 
-@keyframes dashboard-tracker-fill-x { from { transform: scaleX(0); } }
-@keyframes dashboard-tracker-fill-y { from { transform: scaleY(0); } }
-@keyframes dashboard-node-pulse {
-  0%   { box-shadow: 0 0 0 4px var(--dash-tint-strong); }
-  70%  { box-shadow: 0 0 0 11px transparent; }
-  100% { box-shadow: 0 0 0 4px var(--dash-tint-strong); }
-}
 @keyframes dashboard-feed-in {
   from { opacity: 0; transform: translateY(6px); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .project-tracker__line span { animation: dashboard-tracker-fill-x 900ms var(--ease-standard) 150ms both; }
-  .project-tracker__stage--active .project-tracker__node { animation: dashboard-node-pulse 2.6s ease-out 1s infinite; }
   .dashboard-catalog__feed.is-filtered > * { animation: dashboard-feed-in 260ms var(--ease-standard) both; }
 }
 
@@ -476,48 +315,10 @@
   .dashboard-order-status:nth-child(3) { border-left: 0; }
   .dashboard-order-status:nth-child(-n + 2) { border-bottom: 1px solid var(--dash-line); }
 
-  /* Project: vertical stepper. Rows are a fixed height so the fill maps exactly onto the track. */
-  .project-tracker__line {
-    top: 2.125rem;
-    right: auto;
-    bottom: 2.125rem;
-    left: 19px;
-    width: 2px;
-    height: auto;
-  }
-
-  .project-tracker__line span {
-    width: 100%;
-    transform: scaleY(var(--tracker-progress, 0));
-    transform-origin: top;
-  }
-
-  .project-tracker__stages { grid-template-columns: 1fr; grid-auto-rows: 4.25rem; }
-
-  .project-tracker__stage {
-    grid-template-columns: 40px 1fr;
-    align-content: center;
-    align-items: center;
-    justify-items: start;
-    column-gap: var(--space-4);
-    padding-inline: 0;
-    text-align: left;
-  }
-
-  .project-tracker__node { grid-row: 1 / span 2; margin-bottom: 0; }
-  .project-tracker__stage strong,
-  .project-tracker__stage small { grid-column: 2; }
-
-  .dashboard-project__footer { flex-direction: column; align-items: flex-start; }
-
   .dashboard-catalog__header { align-items: flex-start; }
   .dashboard-filters { flex-basis: 100%; }
   .dashboard-catalog .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #dashboard-product-feed { padding-top: var(--space-4); }
-}
-
-@media (prefers-reduced-motion: no-preference) and (max-width: 720px) {
-  .project-tracker__line span { animation-name: dashboard-tracker-fill-y; }
 }
 
 @media (max-width: 480px) {

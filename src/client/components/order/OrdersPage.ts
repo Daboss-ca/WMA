@@ -8,7 +8,6 @@ export type OrderStatusTab = "all" | "pay" | "ship" | "receive" | "review";
 
 export interface OrderItem {
   id: string;
-  orderNumber: string;
   date: string;
   status: "pay" | "ship" | "receive" | "review";
   statusLabel: string;
@@ -17,7 +16,7 @@ export interface OrderItem {
   price: number;
   imageUrl?: string;
   dimensions: string;
-  paymentMethod?: string; // Idinagdag para masundan ang payment method (GCash / COD)
+  paymentMethod?: string;
 }
 
 const TABS: { id: OrderStatusTab; label: string }[] = [
@@ -39,7 +38,7 @@ function escapeHtml(value: string): string {
   })[character] ?? character);
 }
 
-// Render function para sa Order Card na may conditional para sa COD sa 'To pay' tab
+// Render function para sa Order Card na tinanggal na ang orderNumber at petsa na lamang ang natira sa header
 export function renderOrderCard(order: OrderItem): string {
   const formattedPrice = new Intl.NumberFormat("en-PH", {
     style: "currency",
@@ -54,10 +53,8 @@ export function renderOrderCard(order: OrderItem): string {
 
   if (order.status === "pay") {
     if (isCOD) {
-      // Kung COD ang pinili, papalitan ng simpleng label sa pwesto ng button
       footerContent = `<span class="order-payment-method-label" style="font-weight: 600; color: var(--text-muted, #666);">Cash on Delivery</span>`;
     } else {
-      // Kung GCash o online payment, mananatili ang action button
       footerContent = `<button type="button" class="btn btn--secondary btn--sm" data-order-action="pay">Pay now / Upload proof</button>`;
     }
   } else {
@@ -77,7 +74,6 @@ export function renderOrderCard(order: OrderItem): string {
     <article class="order-card" data-order-id="${order.id}">
       <header class="order-card__header">
         <div>
-          <span class="order-card__number">${escapeHtml(order.orderNumber)}</span>
           <span class="order-card__date">${escapeHtml(order.date)}</span>
         </div>
         <span class="order-badge order-badge--${order.status}">
@@ -141,7 +137,6 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
 
           return {
             id: item.id,
-            orderNumber: `WMA-${item.id.slice(0, 6).toUpperCase()}`,
             date: new Date(item.created_at).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
@@ -154,7 +149,7 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
             price: item.total_amount || 0,
             imageUrl: product?.image_url,
             dimensions: product?.dimensions ? `Dimensions: ${product.dimensions} (Qty: ${quantity})` : `Qty: ${quantity}`,
-            paymentMethod: item.payment_method || item.paymentMethod || "gcash", // Sinisigurong nababasa ang payment method galing database
+            paymentMethod: item.payment_method || item.paymentMethod || "gcash",
           };
         });
       }
