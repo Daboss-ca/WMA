@@ -1,9 +1,10 @@
 // backend/src/controllers/inquiry.controller.ts
 import { Request, Response } from 'express';
-import { supabase } from '../config/supabaseClient';
+import { getSupabaseClient } from '../config/supabaseClient';
 
 export const createInquiry = async (req: Request, res: Response): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { user_id, full_name, email, project_type, details } = req.body;
 
     if (!email || !project_type) {

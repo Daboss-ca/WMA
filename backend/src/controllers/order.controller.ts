@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
-import { supabase } from '../config/supabaseClient';
+import { getSupabaseClient } from '../config/supabaseClient';
 
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { user_id, shipping_address, contact_number, payment_method, selected_items } = req.body;
 
     if (!user_id || !shipping_address || !selected_items || !Array.isArray(selected_items) || selected_items.length === 0) {
@@ -88,6 +89,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
 
 export const getUserOrders = async (req: Request, res: Response): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const rawUserId = req.query.user_id;
     const userId = Array.isArray(rawUserId) ? rawUserId[0] : rawUserId;
 
@@ -128,6 +130,7 @@ export const getUserOrders = async (req: Request, res: Response): Promise<void> 
 
 export const uploadPaymentProof = async (req: Request, res: Response): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { order_id, user_id, proof_url, reference_number } = req.body;
 
     if (!order_id || !user_id || !proof_url || !reference_number) {

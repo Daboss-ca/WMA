@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { supabase } from '../config/supabaseClient';
+import { getSupabaseClient } from '../config/supabaseClient';
 
 export const mapCartItem = (item: any) => {
   const product = item?.products ?? {};
@@ -19,6 +19,7 @@ export const mapCartItem = (item: any) => {
 // ADD / UPSERT: Awtomatikong isinusulat sa 'products' table, pagkatapos ay idaragdag sa 'cart_items'
 export const addToCart = async (req: Request, res: Response): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { userId, productId, name, category, dimensions, unitPrice, imageUrl, quantity } = req.body;
 
     if (!userId || !productId) {
@@ -74,6 +75,7 @@ export const addToCart = async (req: Request, res: Response): Promise<void> => {
 // GET / FETCH: Kunin ang lahat ng laman ng cart ng user kasama ang konektadong produkto (optional join)
 export const getCart = async (req: Request, res: Response): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { userId } = req.params;
 
     if (!userId) {
@@ -112,6 +114,7 @@ export const getCart = async (req: Request, res: Response): Promise<void> => {
 // REMOVE: Tanggalin ang isang item sa cart gamit ang cart item ID
 export const removeFromCart = async (req: Request, res: Response): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { id } = req.params;
 
     if (!id) {

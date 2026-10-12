@@ -1,7 +1,8 @@
-import { supabase } from '../config/supabaseClient.js';
+import { getSupabaseClient } from '../config/supabaseClient.js';
 
 export class AuthService {
   static async register(username: string, email: string, phone: string, password: string) {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -35,6 +36,7 @@ export class AuthService {
 
   // Serbisyo para sa pag-login gamit ang username at password
   static async loginWithUsername(username: string, password: string) {
+    const supabase = getSupabaseClient();
     // 1. Hanapin muna sa profiles table ang email na naka-link sa ibinigay na username
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
