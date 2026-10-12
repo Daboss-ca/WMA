@@ -17,6 +17,7 @@ export interface OrderItem {
   price: number;
   imageUrl?: string;
   dimensions: string;
+  paymentMethod?: string; // Idinagdag para masundan ang payment method (GCash / COD)
 }
 
 const TABS: { id: OrderStatusTab; label: string }[] = [
@@ -38,7 +39,7 @@ function escapeHtml(value: string): string {
   })[character] ?? character);
 }
 
-// Inilabas ko ang render function na ito para mapasa sa mga child tabs
+// Render function para sa Order Card na may conditional para sa COD sa 'To pay' tab
 export function renderOrderCard(order: OrderItem): string {
   const formattedPrice = new Intl.NumberFormat("en-PH", {
     style: "currency",
@@ -46,11 +47,31 @@ export function renderOrderCard(order: OrderItem): string {
     maximumFractionDigits: 0,
   }).format(order.price);
 
-  let actionButtonLabel = "View details";
-  if (order.status === "pay") actionButtonLabel = "Pay now / Upload proof";
-  else if (order.status === "ship") actionButtonLabel = "Track crafting";
-  else if (order.status === "receive") actionButtonLabel = "Confirm received";
-  else if (order.status === "review") actionButtonLabel = "Write review";
+  let footerContent = "";
+  const isCOD = 
+    order.paymentMethod?.toLowerCase() === "cod" || 
+    order.paymentMethod?.toLowerCase() === "cash on delivery";
+
+  if (order.status === "pay") {
+    if (isCOD) {
+      // Kung COD ang pinili, papalitan ng simpleng label sa pwesto ng button
+      footerContent = `<span class="order-payment-method-label" style="font-weight: 600; color: var(--text-muted, #666);">Cash on Delivery</span>`;
+    } else {
+      // Kung GCash o online payment, mananatili ang action button
+      footerContent = `<button type="button" class="btn btn--secondary btn--sm" data-order-action="pay">Pay now / Upload proof</button>`;
+    }
+  } else {
+    let actionButtonLabel = "View details";
+    if (order.status === "ship") actionButtonLabel = "Track crafting";
+    else if (order.status === "receive") actionButtonLabel = "Confirm received";
+    else if (order.status === "review") actionButtonLabel = "Write review";
+
+    footerContent = `
+      <button type="button" class="btn btn--secondary btn--sm" data-order-action="${order.status}">
+        ${actionButtonLabel}
+      </button>
+    `;
+  }
 
   return `
     <article class="order-card" data-order-id="${order.id}">
@@ -80,15 +101,12 @@ export function renderOrderCard(order: OrderItem): string {
       </div>
 
       <footer class="order-card__footer">
-        <button type="button" class="btn btn--secondary btn--sm" data-order-action="${order.status}">
-          ${actionButtonLabel}
-        </button>
+        ${footerContent}
       </footer>
     </article>
   `;
 }
 
-// Inilabas din ito para maging malinis ang main function
 function mapDatabaseStatus(dbStatus: string): "pay" | "ship" | "receive" | "review" {
   const statusLower = (dbStatus || "").toLowerCase();
   if (statusLower.includes("pay") || statusLower.includes("pending")) return "pay";
@@ -136,6 +154,7 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
             price: item.total_amount || 0,
             imageUrl: product?.image_url,
             dimensions: product?.dimensions ? `Dimensions: ${product.dimensions} (Qty: ${quantity})` : `Qty: ${quantity}`,
+            paymentMethod: item.payment_method || item.paymentMethod || "gcash", // Sinisigurong nababasa ang payment method galing database
           };
         });
       }
@@ -164,7 +183,6 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
     if (isLoading) {
       listHtml = `<div class="orders-loading"><p>Loading your orders...</p></div>`;
     } else {
-      // Dito ginagamit ang mga hiwa-hiwalay na renderers natin
       switch (activeTab) {
         case "pay":
           listHtml = renderToPayTab(orders, renderOrderCard);
