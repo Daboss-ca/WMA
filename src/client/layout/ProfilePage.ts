@@ -12,35 +12,57 @@ function escapeHtml(value: string): string {
   })[character] ?? character);
 }
 
-function renderUserDetails(user: User): string {
-  const initials = user.fullName
-    .split(' ')
+function getDisplayName(user: User): string {
+  return user.fullName?.trim() || user.username?.trim() || 'User';
+}
+
+function getInitials(name: string): string {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
     .map((part) => part[0])
     .join('')
     .slice(0, 2)
     .toUpperCase();
-  const createdDate = new Date(user.createdAt).toLocaleDateString(undefined, {
+
+  return initials || 'U';
+}
+
+function formatCreatedAt(user: User): string {
+  if (!user.createdAt) return 'Not available';
+
+  const createdDate = new Date(user.createdAt);
+  if (Number.isNaN(createdDate.getTime())) return 'Not available';
+
+  return createdDate.toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
+}
+
+function renderUserDetails(user: User): string {
+  const displayName = getDisplayName(user);
+  const email = user.email?.trim() || 'No email on file';
+  const initials = getInitials(displayName);
+  const createdDate = formatCreatedAt(user);
 
   return `
     <div class="profile-page__identity">
       <div class="profile-page__avatar" aria-hidden="true">${escapeHtml(initials)}</div>
       <div>
         <p class="profile-page__eyebrow">Your WMA account</p>
-        <h1 class="profile-page__title">${escapeHtml(user.fullName)}</h1>
-        <p class="profile-page__email">${escapeHtml(user.email)}</p>
+        <h1 class="profile-page__title">${escapeHtml(displayName)}</h1>
+        <p class="profile-page__email">${escapeHtml(email)}</p>
       </div>
     </div>
     <div class="profile-page__grid">
       <section class="profile-page__panel">
         <p class="profile-page__eyebrow">Profile details</p>
         <dl class="profile-page__details">
-          <div><dt>Name</dt><dd>${escapeHtml(user.fullName)}</dd></div>
-          <div><dt>Email</dt><dd>${escapeHtml(user.email)}</dd></div>
-          <div><dt>Member since</dt><dd>${createdDate}</dd></div>
+          <div><dt>Name</dt><dd>${escapeHtml(displayName)}</dd></div>
+          <div><dt>Email</dt><dd>${escapeHtml(email)}</dd></div>
+          <div><dt>Member since</dt><dd>${escapeHtml(createdDate)}</dd></div>
         </dl>
       </section>
       <section class="profile-page__panel">

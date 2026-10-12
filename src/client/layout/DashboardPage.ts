@@ -1,4 +1,4 @@
-import { findUserByEmail, getCurrentUser } from "../state/sessionManager.js";
+import { getCurrentUser } from "../state/sessionManager.js";
 import { catalogItems } from "../data/furnitureData.js";
 import { createCatalogProductFeed } from "./Catalog.js";
 
