@@ -262,30 +262,30 @@ export function createCartPage(): HTMLElement {
       <div class="cart-summary__checkout-form" style="margin-top: 1.5rem; text-align: left;">
         
         <!-- Contact Number (+63 Lock) -->
-        <label for="contact-number" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #374151;">Contact Number</label>
-        <input type="tel" id="contact-number" placeholder="+63 9XX XXX XXXX" value="+63 " style="width: 100%; box-sizing: border-box; padding: 0.85rem; border: 1px solid #d1d5db; border-radius: 8px; font-family: inherit; font-size: 0.875rem; outline: none; transition: border-color 0.2s; margin-bottom: 1.25rem;" />
+        <label for="contact-number" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main, #f4ece1);">Contact Number</label>
+        <input type="tel" id="contact-number" placeholder="+63 9XX XXX XXXX" value="+63 " style="width: 100%; box-sizing: border-box; padding: 0.85rem; border: 1px solid var(--color-border-strong, rgba(212, 163, 115, 0.32)); border-radius: 8px; background: var(--bg-surface, #261c14); color: var(--text-main, #f4ece1); font-family: inherit; font-size: 0.875rem; outline: none; transition: border-color 0.2s; margin-bottom: 1.25rem;" />
 
         <!-- Detailed Address Field -->
-        <label for="shipping-address" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #374151;">Shipping Address</label>
-        <textarea id="shipping-address" rows="3" placeholder="Enter Full Delivery Address (e.g., Unit/House #, Street, Barangay, City, Province, Zip Code)" style="width: 100%; box-sizing: border-box; padding: 0.85rem; border: 1px solid #d1d5db; border-radius: 8px; font-family: inherit; font-size: 0.875rem; outline: none; transition: border-color 0.2s; margin-bottom: 1.25rem; resize: none;"></textarea>
+        <label for="shipping-address" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main, #f4ece1);">Shipping Address</label>
+        <textarea id="shipping-address" rows="3" placeholder="Enter Full Delivery Address (e.g., Unit/House #, Street, Barangay, City, Province, Zip Code)" style="width: 100%; box-sizing: border-box; padding: 0.85rem; border: 1px solid var(--color-border-strong, rgba(212, 163, 115, 0.32)); border-radius: 8px; background: var(--bg-surface, #261c14); color: var(--text-main, #f4ece1); font-family: inherit; font-size: 0.875rem; outline: none; transition: border-color 0.2s; margin-bottom: 1.25rem; resize: none;"></textarea>
         
         <!-- Payment Method (Modern Radio Cards) -->
-        <label style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem; color: #374151;">Payment Method</label>
+        <label style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-main, #f4ece1);">Payment Method</label>
         <div class="payment-methods" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem;">
           
           <label class="payment-option" style="cursor: pointer;">
             <input type="radio" name="payment_method" value="gcash" checked style="display: none;" />
-            <div class="payment-card" data-selected="true" style="border: 2px solid #2563eb; background-color: #eff6ff; border-radius: 10px; padding: 1rem 0.5rem; text-align: center; transition: all 0.2s;">
-              <div style="color: #2563eb; margin-bottom: 0.5rem;">${icons.gcash}</div>
-              <div style="font-size: 0.85rem; font-weight: 700; color: #1e3a8a;">GCash</div>
+            <div class="payment-card" data-selected="true" style="border: 2px solid var(--accent-primary, #d4a373); background: rgba(212, 163, 115, 0.12); border-radius: 10px; padding: 1rem 0.5rem; text-align: center; transition: all 0.2s;">
+              <div style="color: var(--accent-primary, #d4a373); margin-bottom: 0.5rem;">${icons.gcash}</div>
+              <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main, #f4ece1);">GCash</div>
             </div>
           </label>
 
           <label class="payment-option" style="cursor: pointer;">
             <input type="radio" name="payment_method" value="cod" style="display: none;" />
-            <div class="payment-card" data-selected="false" style="border: 2px solid #e5e7eb; background-color: #ffffff; border-radius: 10px; padding: 1rem 0.5rem; text-align: center; transition: all 0.2s;">
-              <div style="color: #6b7280; margin-bottom: 0.5rem;">${icons.cod}</div>
-              <div style="font-size: 0.85rem; font-weight: 700; color: #374151;">COD</div>
+            <div class="payment-card" data-selected="false" style="border: 2px solid var(--color-border, rgba(212, 163, 115, 0.18)); background: var(--bg-surface, #261c14); border-radius: 10px; padding: 1rem 0.5rem; text-align: center; transition: all 0.2s;">
+              <div style="color: var(--text-muted, #d4a373); margin-bottom: 0.5rem;">${icons.cod}</div>
+              <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main, #f4ece1);">COD</div>
             </div>
           </label>
           
@@ -314,23 +314,23 @@ export function createCartPage(): HTMLElement {
       radio.addEventListener('change', (e) => {
         summary.querySelectorAll('.payment-card').forEach(card => {
           const el = card as HTMLElement;
-          el.style.borderColor = '#e5e7eb';
-          el.style.backgroundColor = '#ffffff';
+          el.style.borderColor = 'var(--color-border, rgba(212, 163, 115, 0.18))';
+          el.style.backgroundColor = 'var(--bg-surface, #261c14)';
           const textEl = el.querySelector('div:last-child') as HTMLElement;
-          textEl.style.color = '#374151';
+          textEl.style.color = 'var(--text-main, #f4ece1)';
           const iconEl = el.querySelector('div:first-child') as HTMLElement;
-          iconEl.style.color = '#6b7280';
+          iconEl.style.color = 'var(--text-muted, #d4a373)';
         });
 
         const target = e.target as HTMLInputElement;
         const parentCard = target.nextElementSibling as HTMLElement;
         if (parentCard) {
-          parentCard.style.borderColor = '#2563eb';
-          parentCard.style.backgroundColor = '#eff6ff';
+          parentCard.style.borderColor = 'var(--accent-primary, #d4a373)';
+          parentCard.style.backgroundColor = 'rgba(212, 163, 115, 0.12)';
           const textEl = parentCard.querySelector('div:last-child') as HTMLElement;
-          textEl.style.color = '#1e3a8a';
+          textEl.style.color = 'var(--text-main, #f4ece1)';
           const iconEl = parentCard.querySelector('div:first-child') as HTMLElement;
-          iconEl.style.color = '#2563eb';
+          iconEl.style.color = 'var(--accent-primary, #d4a373)';
         }
       });
     });
@@ -375,19 +375,19 @@ export function createCartPage(): HTMLElement {
       if (contactNumber.length < 10) {
         showMessage('error', 'Please provide a valid contact number.');
         contactInput.focus();
-        contactInput.style.borderColor = '#991b1b';
+        contactInput.style.borderColor = 'var(--color-danger, #ef4444)';
         return;
       }
-      contactInput.style.borderColor = '#d1d5db';
+      contactInput.style.borderColor = 'var(--color-border-strong, rgba(212, 163, 115, 0.32))';
 
       const shippingAddress = addressInput.value.trim();
       if (!shippingAddress) {
         showMessage('error', 'Please provide your full shipping address.');
         addressInput.focus();
-        addressInput.style.borderColor = '#991b1b';
+        addressInput.style.borderColor = 'var(--color-danger, #ef4444)';
         return;
       }
-      addressInput.style.borderColor = '#d1d5db'; 
+      addressInput.style.borderColor = 'var(--color-border-strong, rgba(212, 163, 115, 0.32))'; 
 
       const selectedPaymentMethod = Array.from(radioInputs).find(r => r.checked)?.value || 'gcash';
 
