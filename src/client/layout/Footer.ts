@@ -89,7 +89,7 @@ export function createFooter(props: FooterProps): HTMLElement {
         <p class="footer-brand__story">${brandStory}</p>
 
         <div class="footer-brand__contact">
-          <a href="tel:+6395406034">095406034</a>
+          <a href="tel:+6395406034">0997 143 3002</a>
           <a href="mailto:wma1983@gmail.com">wma1983@gmail.com</a>
         </div>
 

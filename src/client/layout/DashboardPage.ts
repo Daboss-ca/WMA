@@ -91,12 +91,11 @@ function renderOrderStatus(status: OrderStatus): string {
 
 function renderFilters(): string {
   const filters = [
-    { id: ALL_FILTER_ID, label: "All", count: catalogItems.length },
+    { id: ALL_FILTER_ID, label: "All" },
     ...CATEGORY_FILTERS.map((filter) => ({
       id: filter.id,
       label: filter.label,
-      count: catalogItems.filter((item) => itemMatchesFilter(item, filter.id)).length,
-    })).filter((filter) => filter.count > 0),
+    })),
   ];
 
   if (filters.length <= 1) return "";
@@ -104,8 +103,13 @@ function renderFilters(): string {
   const chips = filters
     .map(
       (filter) => `
-        <button type="button" class="dashboard-filter ${filter.id === ALL_FILTER_ID ? 'is-active' : ''}" data-filter="${filter.id}" aria-pressed="${filter.id === ALL_FILTER_ID}">
-          ${escapeHtml(filter.label)} <span class="dashboard-filter__count">${filter.count}</span>
+        <button
+          type="button"
+          class="dashboard-filter ${filter.id === ALL_FILTER_ID ? 'is-active' : ''}"
+          data-filter="${filter.id}"
+          aria-pressed="${filter.id === ALL_FILTER_ID}"
+        >
+          ${escapeHtml(filter.label)}
         </button>`,
     )
     .join("");

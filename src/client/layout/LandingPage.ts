@@ -1,6 +1,5 @@
 import { createCatalog } from "./Catalog.js";
 import { createProcessSection } from "./ProcessSection.js";
-import { createProfilePage } from "./ProfilePage.js";
 import { catalogItems } from "../data/furnitureData.js";
 import { getCurrentUser } from "../state/sessionManager.js";
 import { uiState } from "../state/uiStateManager.js";
@@ -30,25 +29,8 @@ export function createLandingPage(): HTMLElement {
       },
       items: catalogItems,
     }),
-    createProcessSection(),
-    createProfilePage()
+    createProcessSection()
   );
-
-  const profilePage = main.querySelector<HTMLElement>("#profile-page");
-  const collectionSections = Array.from(main.children).filter(
-    (section): section is HTMLElement => section !== profilePage
-  );
-
-  document.addEventListener("wma:open-profile", () => {
-    collectionSections.forEach((section) => { section.hidden = true; });
-    if (profilePage) profilePage.hidden = false;
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
-
-  document.addEventListener("wma:close-profile", () => {
-    if (profilePage) profilePage.hidden = true;
-    collectionSections.forEach((section) => { section.hidden = false; });
-  });
 
   main.querySelector<HTMLAnchorElement>('a[href="#inquiry"]')?.addEventListener("click", (event) => {
     event.preventDefault();

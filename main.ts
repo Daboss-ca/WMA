@@ -4,6 +4,7 @@ import { createHeader, updateHeaderUI } from "./src/client/layout/Header";
 import { createFooter } from "./src/client/layout/Footer";
 import { createLandingPage } from "./src/client/layout/LandingPage";
 import { createDashboardPage } from "./src/client/layout/DashboardPage";
+import { createProfilePage } from "./src/client/layout/ProfilePage";
 import { createOrdersPage, type OrderStatusTab } from "./src/client/components/order/OrdersPage";
 import { createCartPage } from "./src/client/components/Cart/Cartpage";
 import { initNotificationDrawer } from "./src/client/components/notification/NotificationDrawer";
@@ -12,19 +13,45 @@ import { cartManager } from "./src/client/state/cartManager";
 
 import { createAuthModal, attachAuthModalEvents } from "./src/client/components/auth/AuthModal";
 import { createInquiryModal } from "./src/client/components/inquiry/InquiryModal";
-import { getCurrentUser, SESSION_CHANGED_EVENT } from "./src/client/state/sessionManager";
+import { getCurrentUser, isAdminSession, SESSION_CHANGED_EVENT } from "./src/client/state/sessionManager";
 import { uiState } from "./src/client/state/uiStateManager";
+import { mountAdminApp } from "./src/admin/index";
 
 initTheme();
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
+function isAdminRoute(): boolean {
+  return window.location.hash.startsWith("#/admin");
+}
+
 function renderApp() {
   if (!app) return;
+
+  if (isAdminRoute()) {
+    if (!isAdminSession()) {
+      window.location.hash = "";
+      return;
+    }
+
+    app.innerHTML = "";
+    const adminRoot = document.createElement("div");
+    adminRoot.id = "admin-root";
+    app.appendChild(adminRoot);
+    mountAdminApp(adminRoot);
+    return;
+  }
+
+  if (isAdminSession() && !isAdminRoute()) {
+    window.location.hash = "#/admin/overview";
+    return;
+  }
+
   app.innerHTML = "";
 
   const currentUser = getCurrentUser();
   const main = currentUser ? createDashboardPage() : createLandingPage();
+  const profilePage = createProfilePage();
 
   app.append(
     createHeader({
@@ -39,6 +66,7 @@ function renderApp() {
       ],
     }),
     main,
+    profilePage,
     createFooter({
       quickLinks: currentUser
         ? [
@@ -72,9 +100,43 @@ function renderApp() {
   updateNotificationBadge();
 }
 
+document.addEventListener("wma:open-profile", () => {
+  const profilePage = document.querySelector<HTMLElement>("#profile-page");
+  const mainSections = Array.from(document.querySelectorAll<HTMLElement>(".site-main"));
+
+  mainSections.forEach((section) => {
+    section.hidden = true;
+  });
+
+  if (profilePage) {
+    profilePage.hidden = false;
+  }
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+document.addEventListener("wma:close-profile", () => {
+  const profilePage = document.querySelector<HTMLElement>("#profile-page");
+  const mainSections = Array.from(document.querySelectorAll<HTMLElement>(".site-main"));
+
+  if (profilePage) {
+    profilePage.hidden = true;
+  }
+
+  mainSections.forEach((section) => {
+    section.hidden = false;
+  });
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
 renderApp();
 
 document.addEventListener(SESSION_CHANGED_EVENT, () => {
+  renderApp();
+});
+
+window.addEventListener("hashchange", () => {
   renderApp();
 });
 
@@ -95,6 +157,52 @@ document.addEventListener('wma:open-inquiry', (e) => {
 
 let activeOrdersPage: HTMLElement | null = null;
 
+function insertPageBeforeFooter(page: HTMLElement): void {
+  const appContainer = document.querySelector<HTMLElement>("#app");
+  if (!appContainer) return;
+
+  // If this page is attached somewhere else, detach it before moving it.
+  if (page.parentNode && page.parentNode !== appContainer) {
+    page.remove();
+  }
+
+  // Avoid inserting the same page twice.
+  if (page.parentNode === appContainer) return;
+
+  const footer = appContainer.querySelector<HTMLElement>("footer");
+
+  /*
+   * insertBefore() only accepts a reference node that is a DIRECT child
+   * of appContainer. A footer can be nested inside a wrapper, so find the
+   * top-level child that contains it before trying to insert before it.
+   */
+  let insertionAnchor: Element | null = null;
+
+  if (footer) {
+    insertionAnchor = footer;
+
+    while (
+      insertionAnchor.parentElement &&
+      insertionAnchor.parentElement !== appContainer
+    ) {
+      insertionAnchor = insertionAnchor.parentElement;
+    }
+
+    // The anchor is valid only if it is still a direct child of #app.
+    if (insertionAnchor.parentElement !== appContainer) {
+      insertionAnchor = null;
+    }
+  }
+
+  if (insertionAnchor?.parentNode === appContainer) {
+    appContainer.insertBefore(page, insertionAnchor);
+  } else {
+    // Safe fallback when the footer is missing, nested unexpectedly,
+    // or has been replaced during a render.
+    appContainer.appendChild(page);
+  }
+}
+
 document.addEventListener("wma:open-orders", (event) => {
   const customEvent = event as CustomEvent<{ status?: OrderStatusTab }>;
   const targetStatus = customEvent.detail?.status ?? "all";
@@ -104,27 +212,18 @@ document.addEventListener("wma:open-orders", (event) => {
 
   activeOrdersPage?.remove();
 
-  const appContainer = document.querySelector("#app");
-  if (appContainer) {
-    activeOrdersPage = createOrdersPage(targetStatus);
-    const footer = appContainer.querySelector("footer");
-    
-    if (footer) {
-      appContainer.insertBefore(activeOrdersPage, footer);
-    } else {
-      appContainer.appendChild(activeOrdersPage);
-    }
-    
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  activeOrdersPage = createOrdersPage(targetStatus);
+  insertPageBeforeFooter(activeOrdersPage);
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
 document.addEventListener("wma:close-orders", () => {
   activeOrdersPage?.remove();
   activeOrdersPage = null;
 
-  const dashboardPage = document.querySelector("#dashboard");
-  if (dashboardPage) (dashboardPage as HTMLElement).hidden = false;
+  const dashboardPage = document.querySelector<HTMLElement>("#dashboard");
+  if (dashboardPage && !activeCartPage) dashboardPage.hidden = false;
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
@@ -138,19 +237,10 @@ document.addEventListener("wma:open-cart", () => {
 
   activeCartPage?.remove();
 
-  const appContainer = document.querySelector("#app");
-  if (appContainer) {
-    activeCartPage = createCartPage();
-    const footer = appContainer.querySelector("footer");
-    
-    if (footer) {
-      appContainer.insertBefore(activeCartPage, footer);
-    } else {
-      appContainer.appendChild(activeCartPage);
-    }
-    
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  activeCartPage = createCartPage();
+  insertPageBeforeFooter(activeCartPage);
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
 document.addEventListener("wma:close-cart", () => {
@@ -165,6 +255,24 @@ document.addEventListener("wma:close-cart", () => {
   }
   
   window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+// When a user navigates using the header links, close any overlay page first.
+// This prevents Orders/Cart from remaining mounted and appearing to stack below
+// the landing/dashboard content after navigation.
+document.addEventListener("wma:navigate-section", () => {
+  activeCartPage?.remove();
+  activeCartPage = null;
+
+  activeOrdersPage?.remove();
+  activeOrdersPage = null;
+
+  document.querySelectorAll<HTMLElement>(".site-main").forEach((section) => {
+    section.hidden = false;
+  });
+
+  const dashboardPage = document.querySelector<HTMLElement>("#dashboard");
+  if (dashboardPage) dashboardPage.hidden = false;
 });
 
 // ==========================================

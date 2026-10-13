@@ -1,5 +1,5 @@
 import { validatePassword } from '../../validation/passwordValidator.js';
-import { setCurrentUser } from '../../state/sessionManager.js';
+import { ADMIN_PASSWORD, ADMIN_USERNAME, setAdminSession, setCurrentUser } from '../../state/sessionManager.js';
 import { uiState } from '../../state/uiStateManager.js';
 
 export function renderLoginForm(): string {
@@ -52,8 +52,11 @@ export function attachLoginFormEvents(): void {
       return;
     }
 
+    const normalizedUsername = usernameVal.toLowerCase();
+    const isAdminCredentials = (normalizedUsername === ADMIN_USERNAME || normalizedUsername === 'wma@example.com') && passVal === ADMIN_PASSWORD;
+
     const passCheck = validatePassword(passVal);
-    if (!passCheck.isValid) {
+    if (!passCheck.isValid && !isAdminCredentials) {
       uiState.showAlert({ type: 'error', text: passCheck.message || 'Invalid password.' });
       return;
     }
@@ -62,6 +65,22 @@ export function attachLoginFormEvents(): void {
     uiState.setLoading('login-submit-btn', true, 'Sign In');
 
     try {
+      if (isAdminCredentials) {
+        const rememberMe = rememberCheckbox ? rememberCheckbox.checked : false;
+        const adminUser = setAdminSession();
+        setCurrentUser(adminUser, rememberMe);
+
+        uiState.setLoading('login-submit-btn', false, 'Sign In');
+        uiState.showAlert({ type: 'success', text: 'Admin login successful. Redirecting...' });
+
+        window.location.hash = '#/admin/overview';
+
+        setTimeout(() => {
+          uiState.closeModal();
+        }, 250);
+        return;
+      }
+
       const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: {

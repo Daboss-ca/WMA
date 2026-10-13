@@ -196,24 +196,122 @@
   font-variant-numeric: tabular-nums;
 }
 
-.badge--customizable {
-  background: var(--accent-soft);
-  border-color: var(--color-border-strong);
+.card__media-button {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.card__media-button img,
+.card__media-button .card__media-placeholder {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.catalog-lightbox {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: rgba(12, 10, 9, 0.7);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-base) var(--ease-standard), visibility var(--duration-base) var(--ease-standard);
+  z-index: 2000;
+}
+
+.catalog-lightbox.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.catalog-lightbox__backdrop {
+  position: absolute;
+  inset: 0;
+}
+
+.catalog-lightbox__panel {
+  position: relative;
+  z-index: 1;
+  width: min(860px, 92vw);
+  background: var(--bg-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.catalog-lightbox__panel img {
+  display: block;
+  width: 100%;
+  max-height: 72vh;
+  object-fit: cover;
+  background: #0f0d0b;
+}
+
+.catalog-lightbox__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background: rgba(18, 15, 13, 0.7);
+}
+
+.catalog-lightbox__eyebrow {
+  margin: 0 0 var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.catalog-lightbox__meta h3 {
+  margin: 0;
   color: var(--text-main);
+  font-size: var(--fs-500);
 }
 
-.badge--in-stock {
-  background: var(--color-success-bg);
-  border-color: rgba(91, 122, 82, 0.3);
-  color: var(--color-success);
+.catalog-lightbox__meta p:last-child {
+  margin: 0;
+  color: var(--text-main);
+  font-weight: 700;
 }
 
-.badge--dot::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
+.catalog-lightbox__close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  background: rgba(12, 10, 9, 0.72);
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 24px rgba(0, 0, 0, 0.25);
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.catalog-lightbox__close:hover,
+.catalog-lightbox__close:focus-visible {
+  background: rgba(40, 34, 30, 0.9);
+  border-color: rgba(255, 255, 255, 0.7);
+  transform: scale(1.04);
+  outline: none;
 }
 
 /* ---------- Empty state ---------- */

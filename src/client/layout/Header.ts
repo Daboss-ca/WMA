@@ -113,9 +113,21 @@ export function createHeader(props: HeaderProps): HTMLElement {
 
     event.preventDefault();
     uiState.closeProfile();
+
+    // Close temporary Cart/Orders pages before navigating to a site section.
+    // main.ts handles these events and restores the normal page layout.
+    document.dispatchEvent(new CustomEvent("wma:navigate-section"));
+    document.dispatchEvent(new CustomEvent("wma:close-orders"));
+    document.dispatchEvent(new CustomEvent("wma:close-cart"));
+
     setActiveNavLink(sectionId);
     history.pushState(null, "", `#${sectionId}`);
-    section.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    // Re-query after cleanup because rendering/state changes may replace nodes.
+    requestAnimationFrame(() => {
+      const targetSection = document.getElementById(sectionId);
+      targetSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   });
 
   requestAnimationFrame(() => {
@@ -291,7 +303,6 @@ export function updateHeaderUI(): void {
     const logoutBtn = authContainer.querySelector("#logout-btn");
     logoutBtn?.addEventListener("click", () => {
       clearSession();
-      cartManager.clearCart();
       uiState.closeProfile();
     });
 

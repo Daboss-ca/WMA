@@ -1,4 +1,4 @@
-import { getCurrentUser } from '../state/sessionManager.js';
+import { getCurrentUser, updateCurrentUserProfile } from '../state/sessionManager.js';
 import type { User } from '../types/auth/auth.types.js';
 import { uiState } from '../state/uiStateManager.js';
 
@@ -44,6 +44,8 @@ function formatCreatedAt(user: User): string {
 function renderUserDetails(user: User): string {
   const displayName = getDisplayName(user);
   const email = user.email?.trim() || 'No email on file';
+  const phone = user.phone?.trim() || 'Not provided';
+  const shippingAddress = user.shippingAddress?.trim() || 'Not provided';
   const initials = getInitials(displayName);
   const createdDate = formatCreatedAt(user);
 
@@ -62,16 +64,84 @@ function renderUserDetails(user: User): string {
         <dl class="profile-page__details">
           <div><dt>Name</dt><dd>${escapeHtml(displayName)}</dd></div>
           <div><dt>Email</dt><dd>${escapeHtml(email)}</dd></div>
+          <div><dt>Phone</dt><dd>${escapeHtml(phone)}</dd></div>
+          <div><dt>Shipping address</dt><dd>${escapeHtml(shippingAddress)}</dd></div>
           <div><dt>Member since</dt><dd>${escapeHtml(createdDate)}</dd></div>
         </dl>
       </section>
       <section class="profile-page__panel">
-        <p class="profile-page__eyebrow">Saved activity</p>
-        <h2>Quotes and inquiries</h2>
-        <p class="profile-page__muted">Your saved quotes and inquiries will appear here as you work with WMA Wood Craft.</p>
+        <p class="profile-page__eyebrow">Edit account</p>
+        <form id="profile-form" class="profile-page__form">
+          <label>
+            <span>Full name</span>
+            <input name="fullName" type="text" value="${escapeHtml(displayName)}" maxlength="80" />
+          </label>
+          <label>
+            <span>Email</span>
+            <input name="email" type="email" value="${escapeHtml(email)}" maxlength="120" />
+          </label>
+          <label>
+            <span>Contact number</span>
+            <input name="phone" type="tel" value="${escapeHtml(phone === 'Not provided' ? '' : phone)}" placeholder="e.g. 0917 123 4567" maxlength="30" />
+          </label>
+          <label>
+            <span>Shipping address</span>
+            <textarea name="shippingAddress" rows="4" placeholder="Unit / House #, Street, Barangay, City, Province" maxlength="220">${escapeHtml(shippingAddress === 'Not provided' ? '' : shippingAddress)}</textarea>
+          </label>
+
+          <div class="profile-page__actions">
+            <button type="submit" class="btn btn--primary">Save changes</button>
+            <button type="button" class="btn btn--ghost" id="profile-cancel-btn">Cancel</button>
+          </div>
+          <p class="profile-page__form-status" aria-live="polite"></p>
+        </form>
       </section>
     </div>
   `;
+}
+
+function bindProfileForm(content: HTMLElement): void {
+  const form = content.querySelector<HTMLFormElement>('#profile-form');
+  const statusEl = content.querySelector<HTMLElement>('.profile-page__form-status');
+
+  form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(form);
+    const nextUser = updateCurrentUserProfile({
+      fullName: String(formData.get('fullName') ?? '').trim(),
+      email: String(formData.get('email') ?? '').trim(),
+      phone: String(formData.get('phone') ?? '').trim(),
+      shippingAddress: String(formData.get('shippingAddress') ?? '').trim(),
+    });
+
+    if (!nextUser) {
+      if (statusEl) {
+        statusEl.textContent = 'You must be signed in to update your profile.';
+        statusEl.classList.add('is-error');
+      }
+      return;
+    }
+
+    if (statusEl) {
+      statusEl.textContent = 'Profile updated successfully.';
+      statusEl.classList.remove('is-error');
+    }
+
+    const refreshedUser = getCurrentUser();
+    if (refreshedUser) {
+      content.innerHTML = renderUserDetails(refreshedUser);
+      bindProfileForm(content);
+    }
+  });
+
+  content.querySelector<HTMLButtonElement>('#profile-cancel-btn')?.addEventListener('click', () => {
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      content.innerHTML = renderUserDetails(currentUser);
+      bindProfileForm(content);
+    }
+  });
 }
 
 export function createProfilePage(): HTMLElement {
@@ -91,7 +161,15 @@ export function createProfilePage(): HTMLElement {
   const render = (): void => {
     const content = page.querySelector<HTMLElement>('#profile-page-content');
     const user = getCurrentUser();
-    if (content && user) content.innerHTML = renderUserDetails(user);
+    if (!content) return;
+
+    if (!user) {
+      content.innerHTML = '<p class="profile-page__muted">Please sign in to manage your profile.</p>';
+      return;
+    }
+
+    content.innerHTML = renderUserDetails(user);
+    bindProfileForm(content);
   };
 
   document.addEventListener('wma:open-profile', render);
