@@ -1,5 +1,6 @@
 import { cartManager, type CartItem } from "../../state/cartManager.js";
 import { getCurrentUser } from "../../state/sessionManager.js";
+import { buildApiUrl } from "../../config/api.js";
 
 const MIN_QUANTITY = 1;
 const MAX_QUANTITY = 20;
@@ -397,7 +398,7 @@ export function createCartPage(): HTMLElement {
       messageBox.style.display = 'none';
 
       try {
-        const response = await fetch('http://localhost:5000/api/orders/checkout', {
+        const response = await fetch(buildApiUrl('/orders/checkout'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

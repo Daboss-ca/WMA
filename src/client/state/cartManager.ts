@@ -1,4 +1,5 @@
 import { getCurrentUser } from "./sessionManager.js";
+import { buildApiUrl } from "../config/api.js";
 
 export interface CartItem {
   id: string;
@@ -186,7 +187,7 @@ export const cartManager = {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/cart/${user.id}`);
+      const response = await fetch(buildApiUrl(`/cart/${user.id}`));
       const data = await response.json();
 
       if (!response.ok) {
@@ -257,7 +258,7 @@ export const cartManager = {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/cart', {
+      const response = await fetch(buildApiUrl('/cart'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -303,7 +304,7 @@ export const cartManager = {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/cart', {
+      const response = await fetch(buildApiUrl('/cart'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -334,7 +335,7 @@ export const cartManager = {
     persistCart();
 
     try {
-      const response = await fetch(`http://localhost:5000/api/cart/${id}`, {
+      const response = await fetch(buildApiUrl(`/cart/${id}`), {
         method: 'DELETE',
       });
 

@@ -1,6 +1,7 @@
 import { validatePassword } from '../../validation/passwordValidator.js';
 import { ADMIN_PASSWORD, ADMIN_USERNAME, setAdminSession, setCurrentUser } from '../../state/sessionManager.js';
 import { uiState } from '../../state/uiStateManager.js';
+import { buildApiUrl } from '../../config/api.js';
 
 export function renderLoginForm(): string {
   return `
@@ -81,7 +82,7 @@ export function attachLoginFormEvents(): void {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(buildApiUrl('/auth/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

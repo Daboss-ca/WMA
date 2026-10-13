@@ -1,6 +1,7 @@
 // frontend/src/components/InquiryModal.ts
 import { getCurrentUser } from '../../state/sessionManager.js';
 import { uiState } from '../../state/uiStateManager.js';
+import { buildApiUrl } from '../../config/api.js';
 
 const INQUIRY_CATEGORIES = ['Kiosk', 'Table', 'Cabinet', 'Custom project'];
 
@@ -116,7 +117,7 @@ export function createInquiryModal(): HTMLElement {
       submitButton?.setAttribute('disabled', 'true');
       status.textContent = 'Submitting inquiry...';
 
-      const response = await fetch('http://localhost:5000/api/inquiries', {
+      const response = await fetch(buildApiUrl('/inquiries'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

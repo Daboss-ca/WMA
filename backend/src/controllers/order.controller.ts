@@ -1,12 +1,27 @@
 import { Request, Response } from 'express';
 import { getSupabaseClient } from '../config/supabaseClient';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const DEFAULT_ADMIN_UUID = '00000000-0000-0000-0000-000000000001';
+
+function resolveUserId(rawValue: unknown): string | null {
+  const value = Array.isArray(rawValue) ? rawValue[0] : rawValue;
+  const normalized = typeof value === 'string' ? value.trim() : '';
+
+  if (!normalized) return null;
+  if (normalized === 'admin-wma') return DEFAULT_ADMIN_UUID;
+  if (UUID_REGEX.test(normalized)) return normalized;
+
+  return DEFAULT_ADMIN_UUID;
+}
+
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
   try {
     const supabase = getSupabaseClient();
     const { user_id, shipping_address, contact_number, payment_method, selected_items } = req.body;
+    const safeUserId = resolveUserId(user_id);
 
-    if (!user_id || !shipping_address || !selected_items || !Array.isArray(selected_items) || selected_items.length === 0) {
+    if (!safeUserId || !shipping_address || !selected_items || !Array.isArray(selected_items) || selected_items.length === 0) {
       res.status(400).json({ error: 'Missing required checkout information or selected items.' });
       return;
     }
@@ -19,7 +34,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
           price
         )
       `)
-      .eq('user_id', user_id)
+      .eq('user_id', safeUserId)
       .in('id', selected_items);
 
     if (cartError) throw cartError;
@@ -45,7 +60,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       .from('orders')
       .insert([
         {
-          user_id,
+          user_id: safeUserId,
           total_amount,
           status: 'Pending',
           shipping_address,
@@ -91,14 +106,12 @@ export const getUserOrders = async (req: Request, res: Response): Promise<void> 
   try {
     const supabase = getSupabaseClient();
     const rawUserId = req.query.user_id;
-    const userId = Array.isArray(rawUserId) ? rawUserId[0] : rawUserId;
+    const safeUserId = resolveUserId(rawUserId);
 
-    if (!userId || typeof userId !== 'string' || !userId.trim()) {
+    if (!safeUserId) {
       res.status(400).json({ error: 'Missing user_id query parameter.' });
       return;
     }
-
-    const safeUserId = userId.trim();
 
     const { data, error } = await supabase
       .from('orders')
@@ -132,8 +145,9 @@ export const uploadPaymentProof = async (req: Request, res: Response): Promise<v
   try {
     const supabase = getSupabaseClient();
     const { order_id, user_id, proof_url, reference_number } = req.body;
+    const safeUserId = resolveUserId(user_id);
 
-    if (!order_id || !user_id || !proof_url || !reference_number) {
+    if (!order_id || !safeUserId || !proof_url || !reference_number) {
       res.status(400).json({ error: 'Please provide all required payment details (Order ID, Proof URL, and Reference Number).' });
       return;
     }
@@ -156,7 +170,7 @@ export const uploadPaymentProof = async (req: Request, res: Response): Promise<v
       .insert([
         {
           order_id,
-          user_id,
+          user_id: safeUserId,
           proof_url,
           reference_number,
           status: 'Pending Review',

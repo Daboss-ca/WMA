@@ -5,22 +5,73 @@ import authRoutes from './routes/auth.routes.js';
 import cartRoutes from './routes/cart.routes.js';
 import inquiryRoutes from './routes/inquiry.routes.js';
 import orderRoutes from './routes/order.routes.js';
+import productsRoutes from './routes/products.routes.js';
 
 const app = express();
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  /^http:\/\/192\.168\.\d+\.\d+:5173$/,
+  /^http:\/\/10\.\d+\.\d+\.\d+:5173$/,
+  /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+:5173$/,
+];
+
 app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    const isAllowed = allowedOrigins.some((allowedOrigin) =>
+      typeof allowedOrigin === 'string'
+        ? allowedOrigin === origin
+        : allowedOrigin.test(origin)
+    );
+
+    if (isAllowed) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-app.use(express.json());
+
+app.options('*', cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    const isAllowed = allowedOrigins.some((allowedOrigin) =>
+      typeof allowedOrigin === 'string'
+        ? allowedOrigin === origin
+        : allowedOrigin.test(origin)
+    );
+
+    if (isAllowed) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use('/api/admin', adminRoutes);
+app.use('/api', productsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/orders', orderRoutes);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+const PORT = Number(process.env.PORT) || 5000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on http://0.0.0.0:${PORT}`);
 });

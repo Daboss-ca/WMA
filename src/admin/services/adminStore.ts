@@ -1,9 +1,8 @@
 import type { AdminStats, Order, OrderStatus, Product, ProductInput, TrendPoint } from "../types/admin.js";
+import { buildApiUrl } from "../../client/config/api.js";
 
-const API_BASE = "http://localhost:5000/api/admin";
 const REVENUE_STATUSES: readonly OrderStatus[] = ["to_ship", "shipping", "completed"];
 
-/** Business rule: which status moves are allowed from each state. */
 export const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   pending_payment: ["to_ship", "cancelled"],
   to_ship: ["shipping", "cancelled"],
@@ -22,6 +21,29 @@ export class AdminStorageError extends Error {
 type Listener = () => void;
 
 const sum = (values: number[]): number => values.reduce((total, value) => total + value, 0);
+
+function resolveUserId(): string | null {
+  if (typeof window === "undefined") return "admin-wma"; // Fallback para sa local testing
+
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    const direct = storage.getItem("user_id");
+    if (direct) return direct;
+
+    const raw = storage.getItem("user");
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as { id?: string | number; user_id?: string | number; _id?: string };
+        const id = parsed.user_id ?? parsed.id ?? parsed._id;
+        if (id !== undefined && id !== null && String(id) !== "") return String(id);
+      } catch {
+        /* ignore malformed session data */
+      }
+    }
+  }
+  
+  // Kung talagang walang makita, gamitin ang fallback para hindi maputol ang fetching
+  return "admin-wma";
+}
 
 function buildRevenueTrend(orders: Order[], days = 7): TrendPoint[] {
   const today = new Date();
@@ -49,10 +71,27 @@ function buildRevenueTrend(orders: Order[], days = 7): TrendPoint[] {
 class AdminStore {
   private products: Product[] = [];
   private orders: Order[] = [];
+  private userId: string | null = null;
   private readonly listeners = new Set<Listener>();
 
   constructor() {
-    void this.refreshAll();
+    this.userId = resolveUserId();
+    this.refreshAll().catch((error) => {
+      console.error("[adminStore] initial load failed:", error);
+    });
+  }
+
+  setUserId(userId: string | null): void {
+    this.userId = userId || "admin-wma";
+    this.refreshAll().catch((error) => {
+      console.error("[adminStore] refresh after setUserId failed:", error);
+    });
+  }
+
+  private requireUserId(): string {
+    const id = this.userId ?? resolveUserId();
+    this.userId = id || "admin-wma";
+    return this.userId;
   }
 
   subscribe(listener: Listener): () => void {
@@ -63,17 +102,23 @@ class AdminStore {
   }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await fetch(`${API_BASE}${path}`, {
+    const userId = this.requireUserId();
+    const normalizedPath = path.startsWith("/admin") ? path : `/admin${path.startsWith("/") ? path : `/${path}`}`;
+    const url = new URL(buildApiUrl(normalizedPath));
+    url.searchParams.set("user_id", userId);
+
+    const { headers, ...rest } = init ?? {};
+    const response = await fetch(url.toString(), {
+      ...rest,
       headers: {
         "Content-Type": "application/json",
-        ...(init?.headers ?? {}),
+        ...(headers ?? {}),
       },
-      ...init,
     });
 
     if (!response.ok) {
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      throw new Error(payload?.error ?? "Request failed.");
+      throw new AdminStorageError(payload?.error ?? `Request failed (${response.status}).`);
     }
 
     return (await response.json()) as T;
@@ -92,7 +137,7 @@ class AdminStore {
 
   async refreshOrders(): Promise<Order[]> {
     const next = await this.request<Order[]>("/orders");
-    this.orders = next.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    this.orders = next.sort((_a, b) => new Date(b.createdAt).getTime() - new Date(b.createdAt).getTime());
     this.emit();
     return [...this.orders];
   }
@@ -100,8 +145,6 @@ class AdminStore {
   async refreshAll(): Promise<void> {
     await Promise.all([this.refreshProducts(), this.refreshOrders()]);
   }
-
-  /* ---------- Products ---------- */
 
   listProducts(): Product[] {
     return [...this.products].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
@@ -137,10 +180,8 @@ class AdminStore {
     this.emit();
   }
 
-  /* ---------- Orders ---------- */
-
   listOrders(): Order[] {
-    return [...this.orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return [...this.orders].sort((_a, b) => new Date(b.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
   getOrder(id: string): Order | undefined {
@@ -149,10 +190,10 @@ class AdminStore {
 
   async updateOrderStatus(id: string, next: OrderStatus): Promise<Order> {
     const existing = this.orders.find((order) => order.id === id);
-    if (!existing) throw new Error(`Order not found: ${id}`);
+    if (!existing) throw new AdminStorageError(`Order not found: ${id}`);
 
     if (!ORDER_STATUS_TRANSITIONS[existing.status].includes(next)) {
-      throw new Error(`An order can't move from "${existing.status}" to "${next}".`);
+      throw new AdminStorageError(`An order can't move from "${existing.status}" to "${next}".`);
     }
 
     const updated = await this.request<Order>(`/orders/${encodeURIComponent(id)}/status`, {
@@ -164,8 +205,6 @@ class AdminStore {
     this.emit();
     return updated;
   }
-
-  /* ---------- Stats ---------- */
 
   getStats(): AdminStats {
     const orders = this.listOrders();

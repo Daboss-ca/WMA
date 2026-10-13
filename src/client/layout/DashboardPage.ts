@@ -1,5 +1,7 @@
 import { getCurrentUser } from "../state/sessionManager.js";
 import { catalogItems } from "../data/furnitureData.js";
+import { fetchCatalogProducts } from "../services/productService.js";
+import { buildApiUrl } from "../config/api.js";
 import { createCatalogProductFeed } from "./Catalog.js";
 
 type CatalogItem = (typeof catalogItems)[number];
@@ -165,9 +167,11 @@ export function createDashboardPage(): HTMLElement {
   const statusRegion = page.querySelector<HTMLElement>("[data-filter-status]");
   let activeFilter = ALL_FILTER_ID;
 
+  let liveCatalogItems: CatalogItem[] = [...catalogItems];
+
   const renderFeed = (announce: boolean): void => {
     if (!feedMount) return;
-    const items = catalogItems.filter((item) => itemMatchesFilter(item, activeFilter));
+    const items = liveCatalogItems.filter((item) => itemMatchesFilter(item, activeFilter));
 
     if (items.length === 0) {
       const empty = document.createElement("p");
@@ -184,6 +188,11 @@ export function createDashboardPage(): HTMLElement {
   };
 
   renderFeed(false);
+
+  void fetchCatalogProducts().then((items) => {
+    liveCatalogItems = items;
+    renderFeed(false);
+  });
 
   filterBar?.addEventListener("click", (event) => {
     const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("[data-filter]") : null;
@@ -219,7 +228,7 @@ export function createDashboardPage(): HTMLElement {
 
   const fetchOrderCounts = async () => {
     try {    
-      const response = await fetch(`http://localhost:5000/api/orders?user_id=${user.id}`);
+      const response = await fetch(`${buildApiUrl('/orders')}?user_id=${user.id}`);
       const data = await response.json();
 
       if (response.ok && Array.isArray(data)) {

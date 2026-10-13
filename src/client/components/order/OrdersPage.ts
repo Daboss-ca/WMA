@@ -1,4 +1,5 @@
-import { AUTH_CHANGED_EVENT, getCurrentUser, LOGOUT_EVENT, SESSION_CHANGED_EVENT } from "../../state/sessionManager.js";
+import { AUTH_CHANGED_EVENT, getCurrentUser, isAdminSession, LOGOUT_EVENT, SESSION_CHANGED_EVENT } from "../../state/sessionManager.js";
+import { buildApiUrl } from "../../config/api.js";
 import { renderToPayTab } from "./ToPayTab.js";
 import { renderToShipTab } from "./ToShipTab.js";
 import { renderToReceiveTab } from "./ToReceiveTab.js";
@@ -110,6 +111,20 @@ function mapDatabaseStatus(dbStatus: string): "pay" | "ship" | "receive" | "revi
   if (statusLower.includes("receive") || statusLower.includes("deliver")) return "receive";
   if (statusLower.includes("review") || statusLower.includes("complete")) return "review";
   return "pay";
+}
+
+export function buildOrdersEndpoint(userId?: string | null): string {
+  const normalizedUserId = (userId ?? "").trim();
+
+  if (!normalizedUserId) {
+    return buildApiUrl("/orders");
+  }
+
+  if (normalizedUserId === "admin-wma" || isAdminSession()) {
+    return buildApiUrl("/admin/orders");
+  }
+
+  return `${buildApiUrl("/orders")}?user_id=${encodeURIComponent(normalizedUserId)}`;
 }
 
 export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElement {
@@ -315,7 +330,7 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
 
       try {
         const proofUrl = URL.createObjectURL(selectedFile);
-        const response = await fetch("http://localhost:5000/api/orders/payment-proof", {
+        const response = await fetch(buildApiUrl("/orders/payment-proof"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -407,7 +422,7 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
     renderContent();
 
     try {
-      const response = await fetch(`http://localhost:5000/api/orders?user_id=${encodeURIComponent(targetUserId)}`);
+      const response = await fetch(buildOrdersEndpoint(targetUserId));
       const data = await response.json();
 
       const latestUser = getActiveUser();

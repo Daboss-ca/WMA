@@ -1,6 +1,20 @@
 import { Request, Response } from 'express';
 import { getSupabaseClient } from '../config/supabaseClient';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const DEFAULT_ADMIN_UUID = '00000000-0000-0000-0000-000000000001';
+
+function resolveUserId(rawValue: unknown): string | null {
+  const value = Array.isArray(rawValue) ? rawValue[0] : rawValue;
+  const normalized = typeof value === 'string' ? value.trim() : '';
+
+  if (!normalized) return null;
+  if (normalized === 'admin-wma') return DEFAULT_ADMIN_UUID;
+  if (UUID_REGEX.test(normalized)) return normalized;
+
+  return DEFAULT_ADMIN_UUID;
+}
+
 export const mapCartItem = (item: any) => {
   const product = item?.products ?? {};
 
@@ -21,8 +35,9 @@ export const addToCart = async (req: Request, res: Response): Promise<void> => {
   try {
     const supabase = getSupabaseClient();
     const { userId, productId, name, category, dimensions, unitPrice, imageUrl, quantity } = req.body;
+    const safeUserId = resolveUserId(userId);
 
-    if (!userId || !productId) {
+    if (!safeUserId || !productId) {
       res.status(400).json({ error: 'Missing userId or productId.' });
       return;
     }
@@ -52,7 +67,7 @@ export const addToCart = async (req: Request, res: Response): Promise<void> => {
       .upsert(
         [
           {
-            user_id: userId,
+            user_id: safeUserId,
             product_id: productId,
             quantity: quantity || 1,
           },
@@ -78,9 +93,10 @@ export const addToCart = async (req: Request, res: Response): Promise<void> => {
 export const getCart = async (req: Request, res: Response): Promise<void> => {
   try {
     const supabase = getSupabaseClient();
-    const { userId } = req.params;
+    const userId = req.params.userId;
+    const safeUserId = resolveUserId(userId);
 
-    if (!userId) {
+    if (!safeUserId) {
       res.status(400).json({ error: 'Missing userId parameter.' });
       return;
     }
@@ -88,7 +104,7 @@ export const getCart = async (req: Request, res: Response): Promise<void> => {
     const { data, error } = await supabase
       .from('cart_items')
       .select('id, product_id, quantity, user_id')
-      .eq('user_id', userId)
+      .eq('user_id', safeUserId)
       .limit(200);
 
     if (error) {

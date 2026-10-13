@@ -2,6 +2,7 @@ import { validateEmail } from '../../validation/emailValidator.js';
 import { validatePassword, validateConfirmPassword } from '../../validation/passwordValidator.js';
 import { setCurrentUser } from '../../state/sessionManager.js';
 import { uiState } from '../../state/uiStateManager.js';
+import { buildApiUrl } from '../../config/api.js';
 
 export function renderSignupForm(): string {
   return `
@@ -110,7 +111,7 @@ export function attachSignupFormEvents(): void {
     uiState.setLoading('signup-submit-btn', true, 'Create Account');
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(buildApiUrl('/auth/register'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -2,6 +2,20 @@ import { randomUUID } from 'node:crypto';
 import type { Request, Response } from 'express';
 import { getSupabaseClient } from '../config/supabaseClient.js';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const DEFAULT_ADMIN_UUID = '00000000-0000-0000-0000-000000000001';
+
+function normalizeUserId(rawValue: unknown): string | null {
+  const value = Array.isArray(rawValue) ? rawValue[0] : rawValue;
+  const normalized = typeof value === 'string' ? value.trim() : '';
+
+  if (!normalized) return null;
+  if (normalized === 'admin-wma') return DEFAULT_ADMIN_UUID;
+  if (UUID_REGEX.test(normalized)) return normalized;
+
+  return DEFAULT_ADMIN_UUID;
+}
+
 const ORDER_STATUS_MAP: Record<string, string> = {
   pending_payment: 'Pending',
   to_ship: 'To Ship',
@@ -97,7 +111,21 @@ function buildStatusHistory(raw: any, normalizedStatus: string) {
   return [{ status: normalizedStatus, at: baseAt }];
 }
 
-function resolveCustomerName(raw: any, profile: Record<string, any> = {}): string {
+function unwrapProfileData(value: unknown): Record<string, any> {
+  if (!value) return {};
+  if (Array.isArray(value)) {
+    return (value.find((entry) => entry && typeof entry === 'object') as Record<string, any>) ?? {};
+  }
+  if (typeof value === 'object') {
+    return value as Record<string, any>;
+  }
+  return {};
+}
+
+export function resolveCustomerName(raw: any, profile: Record<string, any> = {}): string {
+  const normalizedProfile = unwrapProfileData(profile);
+  const joinedProfile = unwrapProfileData(raw?.profiles ?? raw?.profile ?? raw?.user);
+
   const rawName = [
     raw?.customer?.name,
     raw?.customer_name,
@@ -105,12 +133,19 @@ function resolveCustomerName(raw: any, profile: Record<string, any> = {}): strin
     raw?.user?.full_name,
     raw?.user?.name,
     raw?.user?.fullName,
-    profile.full_name,
-    profile.name,
-    profile.fullName,
-    raw?.profiles?.full_name,
-    raw?.profiles?.name,
-    raw?.profiles?.fullName,
+    raw?.user?.username,
+    raw?.profile?.full_name,
+    raw?.profile?.name,
+    raw?.profile?.fullName,
+    raw?.profile?.username,
+    joinedProfile.full_name,
+    joinedProfile.name,
+    joinedProfile.fullName,
+    joinedProfile.username,
+    normalizedProfile.full_name,
+    normalizedProfile.name,
+    normalizedProfile.fullName,
+    normalizedProfile.username,
   ].find((value) => typeof value === 'string' && value.trim());
 
   if (typeof rawName === 'string' && rawName.trim()) return rawName.trim();
@@ -143,7 +178,7 @@ export function normalizeOrderRecord(raw: any) {
       }
     : null;
 
-  const profile = raw?.profiles ?? raw?.profile ?? raw?.user ?? {};
+  const profile = unwrapProfileData(raw?.profiles ?? raw?.profile ?? raw?.user ?? {});
   const customerName = resolveCustomerName(raw, profile);
   const customerEmail = String(
     profile.email ?? raw?.customer_email ?? raw?.user_email ?? raw?.email ?? ''
@@ -168,30 +203,39 @@ export function normalizeOrderRecord(raw: any) {
   };
 }
 
-function normalizeProductInput(input: any) {
-  const dimensions = parseDimensions(input?.dimensions ?? { width: 0, height: 0, depth: 0, unit: 'cm' });
+export function normalizeProductInput(input: any) {
+  const rawDimensions = input?.dimensions;
+  const currentDimensions = typeof rawDimensions === 'string' && rawDimensions.trim()
+    ? rawDimensions.trim()
+    : JSON.stringify(parseDimensions(rawDimensions ?? { width: 0, height: 0, depth: 0, unit: 'cm' }));
+
+  const sanitizedCategory = String(input?.category ?? 'Custom').trim() || 'Custom';
+  const resolvedId = typeof input?.id === 'string' && input.id.trim() ? input.id.trim() : `prod_${randomUUID()}`;
 
   return {
-    id: String(input?.id ?? `prd_${randomUUID()}`),
+    id: resolvedId,
     title: String(input?.title ?? '').trim(),
-    description: String(input?.description ?? '').trim(),
-    category: String(input?.category ?? 'Custom'),
+    category: sanitizedCategory,
     price: Number(input?.price ?? 0),
-    dimensions: JSON.stringify(dimensions),
-    image_url: String(input?.imageUrl ?? input?.image_url ?? ''),
+    image_url: String(input?.image_url ?? input?.imageUrl ?? '').trim(),
+    dimensions: currentDimensions,
+    stock: Number.isFinite(Number(input?.stock)) ? Number(input.stock) : 0,
   };
 }
 
-function normalizeProductUpdateInput(input: any) {
-  const dimensions = parseDimensions(input?.dimensions ?? { width: 0, height: 0, depth: 0, unit: 'cm' });
+export function normalizeProductUpdateInput(input: any) {
+  const rawDimensions = input?.dimensions;
+  const currentDimensions = typeof rawDimensions === 'string' && rawDimensions.trim()
+    ? rawDimensions.trim()
+    : JSON.stringify(parseDimensions(rawDimensions ?? { width: 0, height: 0, depth: 0, unit: 'cm' }));
 
   return {
     title: String(input?.title ?? '').trim(),
-    description: String(input?.description ?? '').trim(),
-    category: String(input?.category ?? 'Custom'),
+    category: String(input?.category ?? 'Custom').trim() || 'Custom',
     price: Number(input?.price ?? 0),
-    dimensions: JSON.stringify(dimensions),
-    image_url: String(input?.imageUrl ?? input?.image_url ?? ''),
+    image_url: String(input?.image_url ?? input?.imageUrl ?? '').trim(),
+    dimensions: currentDimensions,
+    stock: Number.isFinite(Number(input?.stock)) ? Number(input.stock) : 0,
   };
 }
 
@@ -224,8 +268,8 @@ export const createAdminProduct = async (req: Request, res: Response): Promise<v
     const supabase = getSupabaseClient();
     const payload = normalizeProductInput(req.body ?? {});
 
-    if (!payload.title || !payload.description || payload.price <= 0) {
-      res.status(400).json({ error: 'Product title, description and price are required.' });
+    if (!payload.title || payload.price <= 0) {
+      res.status(400).json({ error: 'Product title and price are required.' });
       return;
     }
 
@@ -295,43 +339,64 @@ export const deleteAdminProduct = async (req: Request, res: Response): Promise<v
 export const listAdminOrders = async (req: Request, res: Response): Promise<void> => {
   try {
     const supabase = getSupabaseClient();
-    const { data, error } = await supabase
+
+    const { data: ordersData, error: ordersError } = await supabase
       .from('orders')
-      .select('*')
+      .select(`
+        *,
+        order_items (
+          *,
+          products (
+            id,
+            title,
+            category,
+            price,
+            image_url,
+            dimensions
+          )
+        ),
+        payments (*)
+      `)
+      .order('created_at', { ascending: false })
       .limit(200);
 
-    if (error) {
-      console.warn('Admin orders fallback triggered:', error.message);
+    if (ordersError) {
+      console.warn('Admin orders fallback triggered:', ordersError.message);
       res.status(200).json([]);
       return;
     }
 
-    const enriched = await Promise.all(
-      (data ?? []).map(async (row: any) => {
-        const profileQuery = row.user_id
-          ? await supabase.from('profiles').select('full_name, name, email').eq('id', row.user_id).maybeSingle()
-          : { data: null };
+    const orderRows = Array.isArray(ordersData) ? ordersData : [];
+    const profileIds = [...new Set(
+      orderRows
+        .map((row: any) => normalizeUserId(row?.user_id))
+        .filter((id): id is string => typeof id === 'string' && !!id.trim())
+    )];
 
-        const childQuery = await supabase
-          .from('order_items')
-          .select('*')
-          .eq('order_id', row.id)
-          .limit(50);
+    let profileMap = new Map<string, Record<string, any>>();
+    if (profileIds.length > 0) {
+      const { data: profileRows, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, username, email, phone')
+        .in('id', profileIds);
 
-        const paymentQuery = await supabase
-          .from('payments')
-          .select('*')
-          .eq('order_id', row.id)
-          .limit(20);
+      if (!profileError && Array.isArray(profileRows)) {
+        for (const row of profileRows) {
+          if (row?.id) {
+            profileMap.set(row.id, row);
+          }
+        }
+      } else if (profileError) {
+        console.warn('Admin order profile lookup warning:', profileError.message);
+      }
+    }
 
-        return normalizeOrderRecord({
-          ...row,
-          profiles: profileQuery.data ?? row.profiles ?? {},
-          order_items: childQuery.data ?? [],
-          payments: paymentQuery.data ?? [],
-        });
-      })
-    );
+    const enriched = orderRows.map((row: any) => normalizeOrderRecord({
+      ...row,
+      profiles: profileMap.get(row?.user_id) ?? {},
+      order_items: Array.isArray(row?.order_items) ? row.order_items : [],
+      payments: Array.isArray(row?.payments) ? row.payments : [],
+    }));
 
     enriched.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     res.status(200).json(enriched);
