@@ -77,10 +77,11 @@ function buildHeader(): HTMLElement {
   header.className = 'process-header';
   header.innerHTML = `
     <span class="process-eyebrow">How We Work</span>
-    <h2 class="process-title">Our Crafting Process</h2>
+    <h2 class="process-title">Our Process</h2>
     <p class="process-lead">
-      From first sketch to final delivery, every WMA piece moves through four
-      deliberate stages \u2014 built for precision, finished for a lifetime.
+      Before Placing an Order 
+Please read our order process carefully before proceeding. Each project is customized based on your business needs, preferred design, and specifications. Make sure to provide accurate details and review all project information, pricing, and timelines before confirming your order.\u2014 This helps us ensure a smooth process and deliver results that match your expectations.
+
     </p>
   `;
   return header;

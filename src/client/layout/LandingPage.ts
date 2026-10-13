@@ -19,7 +19,7 @@ export function createLandingPage(): HTMLElement {
 
   const heroConfig = {
     title: "YOU BRING THE PRODUCT, WE'LL BUILD THE KIOSK",
-    lead: "WMA Wood Craft designs and builds solid-wood tables, cabinets, and custom pieces for homes and small businesses across the region.",
+    lead: " WMA Wood Craft specializes in designing and building custom mall kiosks, pop-up carts, motor carts, and in-line store setups that help businesses stand out, attract more customers, and maximize their selling space. From customized designs, signage, restaurant fixtures, and 3D design services to marketing solutions, we provide creative and practical business solutions that turn your ideas into eye-catching spaces designed to support your business growth.",
     primaryCta: { label: "Start a project", href: "#inquiry" },
     stats: [
       { value: `${yearsOfExperience}yrs`, label: "in the workshop" },

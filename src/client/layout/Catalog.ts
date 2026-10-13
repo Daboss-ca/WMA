@@ -1066,10 +1066,9 @@ export function createCatalog(
     <section class="section wrap" id="catalog">
       <div class="section__head">
         <div>
-          <h2 class="section__title">Our collection</h2>
+          <h2 class="section__title">WMA Collection</h2>
           <p class="section__subtitle">
-            Hand-built pieces, made to the dimensions and finish
-            your space calls for.
+            Explore WMA Wood Craft’s collection of custom mall kiosks, pop-up carts, motor carts, in-line stores, signage, and restaurant setups—designed to showcase your brand, attract customers, and bring your business vision to life.
           </p>
         </div>
       </div>
