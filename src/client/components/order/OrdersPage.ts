@@ -106,10 +106,23 @@ export function renderOrderCard(order: OrderItem): string {
 
 function mapDatabaseStatus(dbStatus: string): "pay" | "ship" | "receive" | "review" {
   const statusLower = (dbStatus || "").toLowerCase();
-  if (statusLower.includes("pay") || statusLower.includes("pending")) return "pay";
-  if (statusLower.includes("ship") || statusLower.includes("craft")) return "ship";
-  if (statusLower.includes("receive") || statusLower.includes("deliver")) return "receive";
-  if (statusLower.includes("review") || statusLower.includes("complete")) return "review";
+  if (!statusLower) return "pay";
+
+  if (statusLower.includes("cancel")) return "review";
+  if (statusLower.includes("pending") || statusLower.includes("pay")) return "pay";
+
+  if (statusLower.includes("to ship") || (statusLower.includes("ship") && !statusLower.includes("shipping") && !statusLower.includes("shipped"))) {
+    return "ship";
+  }
+
+  if (statusLower.includes("shipping") || statusLower.includes("shipped") || statusLower.includes("deliver") || statusLower.includes("receive")) {
+    return "receive";
+  }
+
+  if (statusLower.includes("review") || statusLower.includes("complete") || statusLower.includes("delivered")) {
+    return "review";
+  }
+
   return "pay";
 }
 

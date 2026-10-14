@@ -24,6 +24,16 @@ const ORDER_STATUS_MAP: Record<string, string> = {
   cancelled: 'Cancelled',
 };
 
+export type AdminOrderStatus = 'pending_payment' | 'to_ship' | 'shipping' | 'completed' | 'cancelled';
+
+export const ORDER_STATUS_TRANSITIONS: Record<AdminOrderStatus, readonly AdminOrderStatus[]> = {
+  pending_payment: ['to_ship', 'cancelled'],
+  to_ship: ['shipping', 'cancelled'],
+  shipping: ['completed'],
+  completed: [],
+  cancelled: [],
+};
+
 function parseDimensions(value: unknown): { width: number; height: number; depth: number; unit: 'cm' | 'in' } {
   const fallback = { width: 0, height: 0, depth: 0, unit: 'cm' as const };
 
@@ -84,8 +94,8 @@ export function normalizeProductRecord(raw: any) {
   };
 }
 
-function normalizeOrderStatus(status: unknown): 'pending_payment' | 'to_ship' | 'shipping' | 'completed' | 'cancelled' {
-  const value = String(status ?? '').trim().toLowerCase();
+export function normalizeOrderStatus(status: unknown): AdminOrderStatus {
+  const value = String(status ?? '').trim().toLowerCase().replace(/[_-]+/g, ' ');
 
   if (!value) return 'pending_payment';
   if (value.includes('cancel')) return 'cancelled';
@@ -95,6 +105,12 @@ function normalizeOrderStatus(status: unknown): 'pending_payment' | 'to_ship' | 
   if (value.includes('pending') || value.includes('pay')) return 'pending_payment';
 
   return 'pending_payment';
+}
+
+export function isAllowedOrderTransition(currentStatus: unknown, nextStatus: unknown): boolean {
+  const from = normalizeOrderStatus(currentStatus);
+  const to = normalizeOrderStatus(nextStatus);
+  return (ORDER_STATUS_TRANSITIONS[from] ?? []).includes(to);
 }
 
 function buildStatusHistory(raw: any, normalizedStatus: string) {
@@ -417,13 +433,34 @@ export const updateAdminOrderStatus = async (req: Request, res: Response): Promi
       return;
     }
 
-    const normalizedStatus = normalizeOrderStatus(status);
-    const nextStatus = ORDER_STATUS_MAP[normalizedStatus] ?? 'Pending';
+    const { data: currentOrder, error: currentError } = await supabase
+      .from('orders')
+      .select('id, status')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (currentError) throw currentError;
+    if (!currentOrder) {
+      res.status(404).json({ error: 'Order not found.' });
+      return;
+    }
+
+    const currentStatus = normalizeOrderStatus(currentOrder.status);
+    const nextNormalizedStatus = normalizeOrderStatus(status);
+
+    if (!isAllowedOrderTransition(currentStatus, nextNormalizedStatus)) {
+      res.status(400).json({
+        error: `Order status cannot move from "${currentStatus}" to "${nextNormalizedStatus}".`,
+      });
+      return;
+    }
+
+    const persistedStatus = ORDER_STATUS_MAP[nextNormalizedStatus] ?? 'Pending';
 
     const { data, error } = await supabase
       .from('orders')
       .update({
-        status: nextStatus,
+        status: persistedStatus,
       })
       .eq('id', id)
       .select('*')

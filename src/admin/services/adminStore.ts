@@ -23,7 +23,7 @@ type Listener = () => void;
 const sum = (values: number[]): number => values.reduce((total, value) => total + value, 0);
 
 function resolveUserId(): string | null {
-  if (typeof window === "undefined") return "admin-wma"; // Fallback para sa local testing
+  if (typeof window === "undefined") return "admin-wma";
 
   for (const storage of [window.localStorage, window.sessionStorage]) {
     const direct = storage.getItem("user_id");
@@ -36,7 +36,7 @@ function resolveUserId(): string | null {
         const id = parsed.user_id ?? parsed.id ?? parsed._id;
         if (id !== undefined && id !== null && String(id) !== "") return String(id);
       } catch {
-        /* ignore malformed session data */
+
       }
     }
   }
@@ -192,7 +192,8 @@ class AdminStore {
     const existing = this.orders.find((order) => order.id === id);
     if (!existing) throw new AdminStorageError(`Order not found: ${id}`);
 
-    if (!ORDER_STATUS_TRANSITIONS[existing.status].includes(next)) {
+    const allowedNext = ORDER_STATUS_TRANSITIONS[existing.status] ?? [];
+    if (!allowedNext.includes(next)) {
       throw new AdminStorageError(`An order can't move from "${existing.status}" to "${next}".`);
     }
 

@@ -1,7 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { normalizeOrderRecord, normalizeProductInput, normalizeProductRecord } from './admin.controller';
+import {
+  isAllowedOrderTransition,
+  normalizeOrderRecord,
+  normalizeOrderStatus,
+  normalizeProductInput,
+  normalizeProductRecord,
+} from './admin.controller';
 
 describe('admin controller data normalization', () => {
   it('converts a Supabase product row into the admin Product shape', () => {
@@ -134,5 +140,15 @@ describe('admin controller data normalization', () => {
 
     assert.equal(normalizeOrderRecord(row).customer.name, 'Maria Santos');
     assert.equal(normalizeOrderRecord(row).customer.email, 'maria@example.com');
+  });
+
+  it('normalizes incoming order statuses and enforces valid admin transitions', () => {
+    assert.equal(normalizeOrderStatus('Pending / To Pay'), 'pending_payment');
+    assert.equal(normalizeOrderStatus('To Ship'), 'to_ship');
+    assert.equal(normalizeOrderStatus('Shipping'), 'shipping');
+    assert.equal(isAllowedOrderTransition('pending_payment', 'to_ship'), true);
+    assert.equal(isAllowedOrderTransition('pending_payment', 'shipping'), false);
+    assert.equal(isAllowedOrderTransition('to_ship', 'completed'), false);
+    assert.equal(isAllowedOrderTransition('shipping', 'completed'), true);
   });
 });

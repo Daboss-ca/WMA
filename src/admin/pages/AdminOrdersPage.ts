@@ -35,9 +35,10 @@ export function createAdminOrdersPage(): AdminPage {
   const meta = element.querySelector<HTMLElement>("[data-meta]") as HTMLElement;
   const tableHost = element.querySelector<HTMLElement>("[data-table]") as HTMLElement;
 
-  const changeStatus = (order: Order, next: OrderStatus): void => {
+  const changeStatus = async (order: Order, next: OrderStatus): Promise<void> => {
     try {
-      adminStore.updateOrderStatus(order.id, next);
+      await adminStore.updateOrderStatus(order.id, next);
+      render();
       showToast(`${order.reference} → ${ORDER_STATUS_META[next].label}`, "success");
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Could not update this order.", "error");
@@ -51,12 +52,14 @@ export function createAdminOrdersPage(): AdminPage {
         itemName: `${order.reference} · ${order.customer.name}`,
         description: "The order will be marked as cancelled and removed from revenue.",
         confirmLabel: "Cancel order",
-        onConfirm: () => changeStatus(order, next),
+        onConfirm: async () => {
+          await changeStatus(order, next);
+        },
         onCancel: render,
       });
       return;
     }
-    changeStatus(order, next);
+    void changeStatus(order, next);
   };
 
   const viewOrder = (order: Order): void => {

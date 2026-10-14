@@ -236,13 +236,15 @@ export function createDashboardPage(): HTMLElement {
         
         data.forEach((order: any) => {
           const statusLower = (order.status || "").toLowerCase();
-          let mappedStatus = "pay";
-          
-          if (statusLower.includes("pay") || statusLower.includes("pending")) mappedStatus = "pay";
-          else if (statusLower.includes("ship") || statusLower.includes("craft")) mappedStatus = "ship";
-          else if (statusLower.includes("receive") || statusLower.includes("deliver")) mappedStatus = "receive";
-          else if (statusLower.includes("review") || statusLower.includes("complete")) mappedStatus = "review";
-          
+          let mappedStatus: keyof typeof counts = "pay";
+
+          if (!statusLower) mappedStatus = "pay";
+          else if (statusLower.includes("cancel")) mappedStatus = "review";
+          else if (statusLower.includes("pending") || statusLower.includes("pay")) mappedStatus = "pay";
+          else if (statusLower.includes("to ship") || (statusLower.includes("ship") && !statusLower.includes("shipping") && !statusLower.includes("shipped"))) mappedStatus = "ship";
+          else if (statusLower.includes("shipping") || statusLower.includes("shipped") || statusLower.includes("deliver") || statusLower.includes("receive")) mappedStatus = "receive";
+          else if (statusLower.includes("review") || statusLower.includes("complete") || statusLower.includes("delivered")) mappedStatus = "review";
+
           if (counts[mappedStatus] !== undefined) {
             counts[mappedStatus]++;
           }
