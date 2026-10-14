@@ -1,5 +1,5 @@
 import express from 'express';
-import cors from 'cors';
+import cors, { type CorsOptions } from 'cors';
 import adminRoutes from './routes/admin.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import cartRoutes from './routes/cart.routes.js';
@@ -10,14 +10,17 @@ import productsRoutes from './routes/products.routes.js';
 const app = express();
 
 const allowedOrigins = [
+  'https://wma-wma3.vercel.app',
+  /^https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)*\.vercel\.app$/i,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/i,
   /^http:\/\/192\.168\.\d+\.\d+:5173$/,
   /^http:\/\/10\.\d+\.\d+\.\d+:5173$/,
   /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+:5173$/,
 ];
 
-app.use(cors({
+const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
 
@@ -37,29 +40,10 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+};
 
-app.options('*', cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-
-    const isAllowed = allowedOrigins.some((allowedOrigin) =>
-      typeof allowedOrigin === 'string'
-        ? allowedOrigin === origin
-        : allowedOrigin.test(origin)
-    );
-
-    if (isAllowed) {
-      callback(null, true);
-      return;
-    }
-
-    callback(new Error(`CORS blocked for origin: ${origin}`));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
