@@ -1,6 +1,6 @@
 import { AUTH_CHANGED_EVENT, getCurrentUser, isAdminSession, LOGOUT_EVENT, SESSION_CHANGED_EVENT } from "../../state/sessionManager.js";
 import { buildApiUrl } from "../../config/api.js";
-import { subscribeToOrdersRealtime, type OrderRealtimePayload } from "../../config/supabase.js";
+import { subscribeToOrdersRealtime } from "../../config/supabase.js";
 import { renderToPayTab } from "./ToPayTab.js";
 import { renderToShipTab } from "./ToShipTab.js";
 import { renderToReceiveTab } from "./ToReceiveTab.js";
