@@ -1,11 +1,22 @@
 import { AUTH_CHANGED_EVENT, getCurrentUser, isAdminSession, LOGOUT_EVENT, SESSION_CHANGED_EVENT } from "../../state/sessionManager.js";
 import { buildApiUrl } from "../../config/api.js";
+import { subscribeToOrdersRealtime, type OrderRealtimePayload } from "../../config/supabase.js";
 import { renderToPayTab } from "./ToPayTab.js";
 import { renderToShipTab } from "./ToShipTab.js";
 import { renderToReceiveTab } from "./ToReceiveTab.js";
 import { renderToReviewTab } from "./ToReviewTab.js";
 
 export type OrderStatusTab = "all" | "pay" | "ship" | "receive" | "review";
+
+export interface OrderLineItem {
+  productId: string;
+  title: string;
+  category: string;
+  unitPrice: number;
+  quantity: number;
+  imageUrl?: string;
+  dimensions: string;
+}
 
 export interface OrderItem {
   id: string;
@@ -18,6 +29,7 @@ export interface OrderItem {
   imageUrl?: string;
   dimensions: string;
   paymentMethod?: string;
+  items: OrderLineItem[];
 }
 
 const TABS: { id: OrderStatusTab; label: string }[] = [
@@ -71,6 +83,37 @@ export function renderOrderCard(order: OrderItem): string {
     `;
   }
 
+  const itemRows = (order.items.length ? order.items : [{
+    productId: "",
+    title: order.title,
+    category: order.category,
+    unitPrice: order.price,
+    quantity: 1,
+    imageUrl: order.imageUrl,
+    dimensions: order.dimensions,
+  }]).map((item) => {
+    const unitPrice = new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      maximumFractionDigits: 0,
+    }).format(item.unitPrice);
+
+    return `
+      <div class="order-card__body order-card__item-row">
+        <div class="order-card__media">
+          ${item.imageUrl
+            ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}" />`
+            : `<div class="order-card__placeholder">${escapeHtml(item.category)}</div>`}
+        </div>
+        <div class="order-card__info">
+          <h3 class="order-card__title">${escapeHtml(item.title)}</h3>
+          <p class="order-card__meta">${escapeHtml(item.dimensions)}</p>
+          <p class="order-card__meta"><strong>QTY:</strong> ${escapeHtml(String(item.quantity))}</p>
+          <p class="order-card__price">${unitPrice} each</p>
+        </div>
+      </div>`;
+  }).join("");
+
   return `
     <article class="order-card" data-order-id="${order.id}">
       <header class="order-card__header">
@@ -82,20 +125,9 @@ export function renderOrderCard(order: OrderItem): string {
         </span>
       </header>
 
-      <div class="order-card__body">
-        <div class="order-card__media">
-          ${
-            order.imageUrl
-              ? `<img src="${order.imageUrl}" alt="${escapeHtml(order.title)}" />`
-              : `<div class="order-card__placeholder">${escapeHtml(order.category)}</div>`
-          }
-        </div>
-        <div class="order-card__info">
-          <h3 class="order-card__title">${escapeHtml(order.title)}</h3>
-          <p class="order-card__meta">${escapeHtml(order.dimensions)}</p>
-          <p class="order-card__price">${formattedPrice}</p>
-        </div>
-      </div>
+      ${itemRows}
+
+      <p class="order-card__price order-card__total">Order total: ${formattedPrice}</p>
 
       <footer class="order-card__footer">
         ${footerContent}
@@ -105,18 +137,24 @@ export function renderOrderCard(order: OrderItem): string {
 }
 
 function mapDatabaseStatus(dbStatus: string): "pay" | "ship" | "receive" | "review" {
-  const statusLower = (dbStatus || "").toLowerCase();
+  const statusLower = (dbStatus || "").trim().toLowerCase();
   if (!statusLower) return "pay";
 
   if (statusLower.includes("cancel")) return "review";
   if (statusLower.includes("pending") || statusLower.includes("pay")) return "pay";
 
-  if (statusLower.includes("to ship") || (statusLower.includes("ship") && !statusLower.includes("shipping") && !statusLower.includes("shipped"))) {
-    return "ship";
+  if (
+    statusLower.includes("shipping") ||
+    statusLower.includes("shipped") ||
+    statusLower.includes("deliver") ||
+    statusLower.includes("delivery") ||
+    statusLower.includes("receive")
+  ) {
+    return "receive";
   }
 
-  if (statusLower.includes("shipping") || statusLower.includes("shipped") || statusLower.includes("deliver") || statusLower.includes("receive")) {
-    return "receive";
+  if (statusLower.includes("to ship") || statusLower.includes("ship")) {
+    return "ship";
   }
 
   if (statusLower.includes("review") || statusLower.includes("complete") || statusLower.includes("delivered")) {
@@ -173,6 +211,8 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
   let isLoading = true;
   let paymentProofModal: HTMLElement | null = null;
   let currentUserId = user.id;
+  let latestOrderFetch = 0;
+  let realtimeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     let toast = document.getElementById("payment-proof-toast");
@@ -366,7 +406,6 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
 
         setTimeout(() => {
           closePaymentProofModal();
-          fetchUserOrders();
         }, 300);
       } catch (error) {
         const messageText = error instanceof Error ? error.message : "Something went wrong while submitting proof.";
@@ -409,13 +448,43 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
     referenceInput?.focus();
   };
 
+  const confirmReceivedOrder = async (order: OrderItem) => {
+    const activeUser = getCurrentUser();
+    if (!activeUser?.id) {
+      showToast("Please sign in to confirm receipt.", "error");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${buildApiUrl("/orders")}/${encodeURIComponent(order.id)}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "completed",
+          user_id: activeUser.id,
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || "Unable to confirm receipt.");
+      }
+
+      await fetchUserOrders(activeUser.id, true);
+      showToast("Order marked as completed.", "success");
+    } catch (error) {
+      console.error("Unable to confirm received order:", error);
+      showToast(error instanceof Error ? error.message : "Unable to confirm receipt.", "error");
+    }
+  };
+
   const resetOrdersState = (loading = false) => {
     orders = [];
     isLoading = loading;
     renderContent();
   };
 
-  const fetchUserOrders = async (requestedUserId: string = currentUserId) => {
+  const fetchUserOrders = async (requestedUserId: string = currentUserId, silent = false) => {
     const activeUser = getActiveUser();
     if (!activeUser) {
       orders = [];
@@ -431,15 +500,19 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
       return;
     }
 
-    isLoading = true;
-    renderContent();
+    const fetchId = ++latestOrderFetch;
+
+    if (!silent) {
+      isLoading = true;
+      renderContent();
+    }
 
     try {
       const response = await fetch(buildOrdersEndpoint(targetUserId));
       const data = await response.json();
 
       const latestUser = getActiveUser();
-      if (!latestUser || latestUser.id !== targetUserId) {
+      if (fetchId !== latestOrderFetch || !latestUser || latestUser.id !== targetUserId) {
         return;
       }
 
@@ -447,14 +520,33 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
         throw new Error(data?.error || "Unable to load orders.");
       }
 
-      orders = Array.isArray(data)
+      const fetchedOrders: OrderItem[] = Array.isArray(data)
         ? data.map((item: any) => {
-            const firstOrderItem = item.order_items?.[0];
-            const product = firstOrderItem?.products;
-            const quantity = firstOrderItem?.quantity || 1;
+            const lineItems = (Array.isArray(item.order_items) ? item.order_items : []).map((orderLine: any) => {
+              const product = Array.isArray(orderLine.products) ? orderLine.products[0] : orderLine.products;
+              const rawPrice = Number(orderLine.price ?? orderLine.unit_price ?? product?.price ?? 0);
+              const rawQuantity = Number(orderLine.quantity ?? 1);
+              const dimensions = product?.dimensions;
+              const dimensionsText = typeof dimensions === "string"
+                ? dimensions
+                : dimensions && typeof dimensions === "object"
+                  ? `${dimensions.width ?? 0} × ${dimensions.height ?? 0} × ${dimensions.depth ?? 0} ${dimensions.unit ?? "cm"}`
+                  : "";
+
+              return {
+                productId: String(orderLine.product_id ?? product?.id ?? ""),
+                title: String(product?.title ?? orderLine.title ?? "Custom item"),
+                category: String(product?.category ?? "Category"),
+                unitPrice: Number.isFinite(rawPrice) ? rawPrice : 0,
+                quantity: Number.isFinite(rawQuantity) && rawQuantity > 0 ? rawQuantity : 1,
+                imageUrl: product?.image_url ? String(product.image_url) : undefined,
+                dimensions: dimensionsText ? `Dimensions: ${dimensionsText}` : "",
+              };
+            });
+            const firstItem = lineItems[0];
 
             return {
-              id: item.id,
+              id: String(item.id),
               date: new Date(item.created_at).toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
@@ -462,25 +554,23 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
               }),
               status: mapDatabaseStatus(item.status),
               statusLabel: item.status || "Pending",
-              title: product?.title || `Item ${firstOrderItem?.product_id || ""}`,
-              category: product?.category || "Category",
-              price: item.total_amount || 0,
-              imageUrl: product?.image_url,
-              dimensions: product?.dimensions ? `Dimensions: ${product.dimensions} (Qty: ${quantity})` : `Qty: ${quantity}`,
+              title: firstItem?.title || `Order ${String(item.id).slice(-6)}`,
+              category: firstItem?.category || "Category",
+              price: Number(item.total_amount ?? item.total ?? lineItems.reduce((sum: number, line: any) => sum + line.unitPrice * line.quantity, 0)),
+              imageUrl: firstItem?.imageUrl,
+              dimensions: firstItem?.dimensions ?? "",
               paymentMethod: item.payment_method || item.paymentMethod || "gcash",
+              items: lineItems,
             };
           })
         : [];
+      orders = fetchedOrders;
     } catch (error) {
       console.error("Error fetching orders:", error);
-      orders = [];
+      if (fetchId === latestOrderFetch) orders = [];
     } finally {
       const latestUser = getActiveUser();
-      if (latestUser && latestUser.id === targetUserId) {
-        isLoading = false;
-        renderContent();
-      } else {
-        orders = [];
+      if (fetchId === latestOrderFetch && latestUser && latestUser.id === targetUserId) {
         isLoading = false;
         renderContent();
       }
@@ -577,12 +667,23 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
       });
     });
 
+    page.querySelectorAll<HTMLButtonElement>("[data-order-action='receive']").forEach((actionButton) => {
+      const orderId = actionButton.closest(".order-card")?.getAttribute("data-order-id");
+      const currentOrder = orders.find((order) => order.id === orderId);
+      if (!currentOrder) return;
+
+      actionButton.addEventListener("click", () => {
+        void confirmReceivedOrder(currentOrder);
+      });
+    });
+
     page.querySelector('[data-action="go-catalog"]')?.addEventListener("click", () => {
       document.dispatchEvent(new CustomEvent("wma:close-orders"));
     });
   };
 
   const handleSessionReset = () => {
+    latestOrderFetch += 1;
     const activeUser = getActiveUser();
     if (!activeUser) {
       currentUserId = "";
@@ -592,7 +693,7 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
 
     currentUserId = activeUser.id;
     resetOrdersState(true);
-    fetchUserOrders(activeUser.id);
+    fetchUserOrders(activeUser.id, false);
   };
 
   const handleAuthChanged = (event: Event) => {
@@ -600,6 +701,7 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
     const nextUserId = detail?.userId ?? detail?.user?.id ?? null;
 
     if (!nextUserId) {
+      latestOrderFetch += 1;
       currentUserId = "";
       orders = [];
       isLoading = false;
@@ -617,8 +719,36 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
   document.addEventListener("wma:session-cleared", handleSessionReset);
   document.addEventListener(SESSION_CHANGED_EVENT, handleSessionReset);
 
+
   renderContent();
-  fetchUserOrders();
+  fetchUserOrders(currentUserId, false);
+
+  const stopRealtimeSync = subscribeToOrdersRealtime((payload) => {
+    console.log("[OrdersPage] refreshing full order state after payload:", payload);
+    if (payload.table !== "orders" || !["INSERT", "UPDATE", "DELETE"].includes(payload.eventType)) return;
+    const activeUser = getCurrentUser();
+    const targetUserId = activeUser?.id ?? currentUserId;
+    if (!targetUserId) return;
+    if (realtimeRefreshTimer) clearTimeout(realtimeRefreshTimer);
+    realtimeRefreshTimer = setTimeout(() => {
+      realtimeRefreshTimer = null;
+      void fetchUserOrders(targetUserId, true);
+    }, 75);
+  });
+
+  const destroy = () => {
+    if (realtimeRefreshTimer) {
+      clearTimeout(realtimeRefreshTimer);
+      realtimeRefreshTimer = null;
+    }
+    stopRealtimeSync();
+    document.removeEventListener(LOGOUT_EVENT, handleAuthChanged);
+    document.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
+    document.removeEventListener("wma:session-cleared", handleSessionReset);
+    document.removeEventListener(SESSION_CHANGED_EVENT, handleSessionReset);
+  };
+
+  (page as HTMLElement & { destroy?: () => void }).destroy = destroy;
 
   return page;
 }

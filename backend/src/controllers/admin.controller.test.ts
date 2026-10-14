@@ -149,6 +149,6 @@ describe('admin controller data normalization', () => {
     assert.equal(isAllowedOrderTransition('pending_payment', 'to_ship'), true);
     assert.equal(isAllowedOrderTransition('pending_payment', 'shipping'), false);
     assert.equal(isAllowedOrderTransition('to_ship', 'completed'), false);
-    assert.equal(isAllowedOrderTransition('shipping', 'completed'), true);
+    assert.equal(isAllowedOrderTransition('shipping', 'completed'), false);
   });
 });

@@ -1,7 +1,8 @@
 import { createCatalog } from "./Catalog.js";
 import { createProcessSection } from "./ProcessSection.js";
 import { catalogItems } from "../data/furnitureData.js";
-import { fetchCatalogProducts } from "../services/productService.js";
+import { applyCatalogProductChange, fetchCatalogProducts } from "../services/productService.js";
+import { subscribeToProductsRealtime } from "../config/supabase.js";
 import { getCurrentUser } from "../state/sessionManager.js";
 import { uiState } from "../state/uiStateManager.js";
 
@@ -38,6 +39,8 @@ export function createLandingPage(): HTMLElement {
     });
   };
 
+  let liveCatalogItems = [...catalogItems];
+  let catalogRevision = 0;
   const initialCatalog = createCatalog({
     hero: heroConfig,
     items: catalogItems,
@@ -46,15 +49,39 @@ export function createLandingPage(): HTMLElement {
   main.append(initialCatalog, createProcessSection());
   bindInquiryAction();
 
-  void fetchCatalogProducts().then((items) => {
+  const renderCatalog = (items: typeof catalogItems): void => {
+    liveCatalogItems = [...items];
     const liveCatalog = createCatalog({
       hero: heroConfig,
-      items,
+      items: liveCatalogItems,
     });
 
     main.replaceChildren(liveCatalog, createProcessSection());
     bindInquiryAction();
+  };
+
+  const refreshCatalog = (): void => {
+    const revisionAtRequest = catalogRevision;
+    void fetchCatalogProducts().then((items) => {
+      if (revisionAtRequest !== catalogRevision) return;
+      renderCatalog(items);
+    }).catch((error) => {
+      console.error("[LandingPage] catalog refresh failed:", error);
+    });
+  };
+
+  refreshCatalog();
+
+  const stopProductsRealtime = subscribeToProductsRealtime((payload) => {
+    console.log("[LandingPage] applying product change:", payload);
+    catalogRevision++;
+    const nextItems = applyCatalogProductChange(liveCatalogItems, payload);
+    if (nextItems) renderCatalog(nextItems);
   });
+
+  (main as HTMLElement & { destroy?: () => void }).destroy = () => {
+    stopProductsRealtime();
+  };
 
   return main;
 }

@@ -2,20 +2,6 @@ import { randomUUID } from 'node:crypto';
 import type { Request, Response } from 'express';
 import { getSupabaseClient } from '../config/supabaseClient.js';
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const DEFAULT_ADMIN_UUID = '00000000-0000-0000-0000-000000000001';
-
-function normalizeUserId(rawValue: unknown): string | null {
-  const value = Array.isArray(rawValue) ? rawValue[0] : rawValue;
-  const normalized = typeof value === 'string' ? value.trim() : '';
-
-  if (!normalized) return null;
-  if (normalized === 'admin-wma') return DEFAULT_ADMIN_UUID;
-  if (UUID_REGEX.test(normalized)) return normalized;
-
-  return DEFAULT_ADMIN_UUID;
-}
-
 const ORDER_STATUS_MAP: Record<string, string> = {
   pending_payment: 'Pending',
   to_ship: 'To Ship',
@@ -29,7 +15,7 @@ export type AdminOrderStatus = 'pending_payment' | 'to_ship' | 'shipping' | 'com
 export const ORDER_STATUS_TRANSITIONS: Record<AdminOrderStatus, readonly AdminOrderStatus[]> = {
   pending_payment: ['to_ship', 'cancelled'],
   to_ship: ['shipping', 'cancelled'],
-  shipping: ['completed'],
+  shipping: [],
   completed: [],
   cancelled: [],
 };
@@ -166,7 +152,13 @@ export function resolveCustomerName(raw: any, profile: Record<string, any> = {})
 
   if (typeof rawName === 'string' && rawName.trim()) return rawName.trim();
 
-  const fallbackEmail = [raw?.customer_email, raw?.user_email, raw?.email].find((value) => typeof value === 'string' && value.trim());
+  const fallbackEmail = [
+    raw?.customer_email,
+    raw?.user_email,
+    raw?.email,
+    joinedProfile.email,
+    normalizedProfile.email,
+  ].find((value) => typeof value === 'string' && value.trim());
   if (typeof fallbackEmail === 'string' && fallbackEmail.trim()) {
     return fallbackEmail.trim().split('@')[0].replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
   }
@@ -176,12 +168,18 @@ export function resolveCustomerName(raw: any, profile: Record<string, any> = {})
 
 export function normalizeOrderRecord(raw: any) {
   const normalizedStatus = normalizeOrderStatus(raw?.status);
-  const items = (Array.isArray(raw?.order_items) ? raw.order_items : []).map((item: any) => ({
-    productId: String(item?.product_id ?? item?.products?.id ?? ''),
-    title: String(item?.products?.title ?? item?.title ?? 'Custom item'),
-    unitPrice: Number(item?.price ?? item?.unit_price ?? item?.products?.price ?? 0),
-    quantity: Number(item?.quantity ?? 1),
-  }));
+  const items = (Array.isArray(raw?.order_items) ? raw.order_items : []).map((item: any) => {
+    const product = Array.isArray(item?.products) ? item.products[0] : item?.products;
+    const rawPrice = Number(item?.price ?? item?.unit_price ?? product?.price ?? 0);
+    const rawQuantity = Number(item?.quantity ?? 1);
+
+    return {
+      productId: String(item?.product_id ?? product?.id ?? ''),
+      title: String(product?.title ?? item?.title ?? 'Custom item'),
+      unitPrice: Number.isFinite(rawPrice) ? rawPrice : 0,
+      quantity: Number.isFinite(rawQuantity) && rawQuantity > 0 ? rawQuantity : 1,
+    };
+  });
 
   const payments = Array.isArray(raw?.payments) ? raw.payments : [];
   const latestPayment = payments[0] ?? null;
@@ -217,6 +215,147 @@ export function normalizeOrderRecord(raw: any) {
     createdAt: String(raw?.created_at ?? raw?.createdAt ?? new Date().toISOString()),
     updatedAt: String(raw?.updated_at ?? raw?.updatedAt ?? raw?.created_at ?? raw?.createdAt ?? new Date().toISOString()),
   };
+}
+
+function resolveMimeExtension(mimeType: string): string {
+  const mapping: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+    'image/svg+xml': 'svg',
+  };
+
+  return mapping[mimeType] ?? 'jpg';
+}
+
+function parseDataUrl(rawValue: string): { mimeType: string; buffer: Buffer } | null {
+  const match = rawValue.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/i);
+  if (!match) return null;
+
+  const [, mimeType, base64Data] = match;
+  try {
+    return {
+      mimeType,
+      buffer: Buffer.from(base64Data, 'base64'),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function extractProductImageStorageKey(imageUrl: string | null | undefined): string | null {
+  if (!imageUrl) return null;
+
+  try {
+    const parsed = new URL(imageUrl);
+    const pathname = decodeURIComponent(parsed.pathname);
+    const publicPrefix = '/storage/v1/object/public/product-images/';
+    const bucketPrefix = '/storage/v1/object/public/';
+
+    if (pathname.includes(publicPrefix)) {
+      return pathname.slice(pathname.indexOf(publicPrefix) + publicPrefix.length);
+    }
+
+    if (pathname.includes(bucketPrefix)) {
+      const remaining = pathname.slice(pathname.indexOf(bucketPrefix) + bucketPrefix.length);
+      const parts = remaining.split('/').filter(Boolean);
+      if (parts[0] === 'product-images') {
+        return parts.slice(1).join('/');
+      }
+      return remaining || null;
+    }
+  } catch {
+    // Fall through to the string-based cleanup below.
+  }
+
+  const normalized = imageUrl
+    .replace(/^https?:\/\/[^/]+\/+/, '')
+    .replace(/^storage\/v1\/object\/public\/product-images\//i, '')
+    .replace(/^product-images\//i, '');
+
+  return normalized || null;
+}
+
+async function uploadProductImageToStorage(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  rawValue: unknown,
+  fallbackName = 'product-image'
+): Promise<string> {
+  const value = typeof rawValue === 'string' ? rawValue.trim() : '';
+
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith('blob:')) return '';
+
+  const dataUrl = value.startsWith('data:image/') ? parseDataUrl(value) : null;
+  if (!dataUrl) return value;
+
+  const extension = resolveMimeExtension(dataUrl.mimeType);
+  const filePath = `products/${Date.now()}-${randomUUID()}.${extension}`;
+
+  const { error: uploadError } = await supabase
+    .storage
+    .from('product-images')
+    .upload(filePath, dataUrl.buffer, {
+      contentType: dataUrl.mimeType,
+      cacheControl: '3600',
+      upsert: true,
+      duplex: 'half',
+    });
+
+  if (uploadError) {
+    throw new Error(`Failed to upload product image to Supabase Storage: ${uploadError.message}`);
+  }
+
+  const { data: publicUrlData } = supabase.storage.from('product-images').getPublicUrl(filePath);
+  if (!publicUrlData?.publicUrl) {
+    throw new Error('Failed to generate public URL for uploaded product image.');
+  }
+
+  return publicUrlData.publicUrl;
+}
+
+export async function resolveProductImageUrl(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  input: any,
+  file?: { buffer?: Buffer; originalname?: string; mimetype?: string }
+): Promise<string> {
+  const rawValue = typeof input?.image_url === 'string'
+    ? input.image_url
+    : typeof input?.imageUrl === 'string'
+      ? input.imageUrl
+      : '';
+
+  if (file?.buffer && file.buffer.length > 0) {
+    const mimeType = file.mimetype || 'image/jpeg';
+    const extension = resolveMimeExtension(mimeType);
+    const filePath = `products/${Date.now()}-${randomUUID()}.${extension}`;
+
+    const { error: uploadError } = await supabase
+      .storage
+      .from('product-images')
+      .upload(filePath, file.buffer, {
+        contentType: mimeType,
+        cacheControl: '3600',
+        upsert: true,
+        duplex: 'half',
+      });
+
+    if (uploadError) {
+      throw new Error(`Failed to upload product image to Supabase Storage: ${uploadError.message}`);
+    }
+
+    const { data: publicUrlData } = supabase.storage.from('product-images').getPublicUrl(filePath);
+    if (!publicUrlData?.publicUrl) {
+      throw new Error('Failed to generate public URL for uploaded product image.');
+    }
+
+    return publicUrlData.publicUrl;
+  }
+
+  if (!rawValue) return '';
+  return uploadProductImageToStorage(supabase, rawValue, file?.originalname || 'product-image');
 }
 
 export function normalizeProductInput(input: any) {
@@ -282,11 +421,17 @@ export const listAdminProducts = async (req: Request, res: Response): Promise<vo
 export const createAdminProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const supabase = getSupabaseClient();
-    const payload = normalizeProductInput(req.body ?? {});
+    const rawBody = req.body ?? {};
+    const payload = normalizeProductInput(rawBody);
 
     if (!payload.title || payload.price <= 0) {
       res.status(400).json({ error: 'Product title and price are required.' });
       return;
+    }
+
+    const resolvedImageUrl = await resolveProductImageUrl(supabase, rawBody, req.file as any);
+    if (resolvedImageUrl) {
+      payload.image_url = resolvedImageUrl;
     }
 
     const { data, error } = await supabase
@@ -307,11 +452,17 @@ export const updateAdminProduct = async (req: Request, res: Response): Promise<v
   try {
     const supabase = getSupabaseClient();
     const { id } = req.params;
-    const payload = normalizeProductUpdateInput(req.body ?? {});
+    const rawBody = req.body ?? {};
+    const payload = normalizeProductUpdateInput(rawBody);
 
     if (!id) {
       res.status(400).json({ error: 'Product id is required.' });
       return;
+    }
+
+    const resolvedImageUrl = await resolveProductImageUrl(supabase, rawBody, req.file as any);
+    if (resolvedImageUrl) {
+      payload.image_url = resolvedImageUrl;
     }
 
     const { data, error } = await supabase
@@ -337,6 +488,30 @@ export const deleteAdminProduct = async (req: Request, res: Response): Promise<v
     if (!id) {
       res.status(400).json({ error: 'Product id is required.' });
       return;
+    }
+
+    const { data: product, error: fetchError } = await supabase
+      .from('products')
+      .select('id, image_url')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (!product) {
+      res.status(404).json({ error: 'Product not found.' });
+      return;
+    }
+
+    const storageKey = extractProductImageStorageKey(product.image_url);
+    if (storageKey) {
+      const { error: storageError } = await supabase
+        .storage
+        .from('product-images')
+        .remove([storageKey]);
+
+      if (storageError) {
+        console.warn('Product image cleanup warning:', storageError.message);
+      }
     }
 
     const { error } = await supabase
@@ -385,15 +560,15 @@ export const listAdminOrders = async (req: Request, res: Response): Promise<void
     const orderRows = Array.isArray(ordersData) ? ordersData : [];
     const profileIds = [...new Set(
       orderRows
-        .map((row: any) => normalizeUserId(row?.user_id))
-        .filter((id): id is string => typeof id === 'string' && !!id.trim())
+        .map((row: any) => typeof row?.user_id === 'string' ? row.user_id.trim() : '')
+        .filter((id: string) => id.length > 0)
     )];
 
     let profileMap = new Map<string, Record<string, any>>();
     if (profileIds.length > 0) {
       const { data: profileRows, error: profileError } = await supabase
         .from('profiles')
-        .select('id, username, email, phone')
+        .select('id, username, email')
         .in('id', profileIds);
 
       if (!profileError && Array.isArray(profileRows)) {
@@ -409,7 +584,7 @@ export const listAdminOrders = async (req: Request, res: Response): Promise<void
 
     const enriched = orderRows.map((row: any) => normalizeOrderRecord({
       ...row,
-      profiles: profileMap.get(row?.user_id) ?? {},
+      profiles: profileMap.get(typeof row?.user_id === 'string' ? row.user_id.trim() : '') ?? {},
       order_items: Array.isArray(row?.order_items) ? row.order_items : [],
       payments: Array.isArray(row?.payments) ? row.payments : [],
     }));
@@ -419,6 +594,54 @@ export const listAdminOrders = async (req: Request, res: Response): Promise<void
   } catch (error: any) {
     console.error('Admin list orders error:', error);
     res.status(200).json([]);
+  }
+};
+
+export const getAdminOrder = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const supabase = getSupabaseClient();
+    const { id } = req.params;
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        order_items (
+          *,
+          products (
+            id,
+            title,
+            category,
+            price,
+            image_url,
+            dimensions
+          )
+        ),
+        payments (*)
+      `)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!order) {
+      res.status(404).json({ error: 'Order not found.' });
+      return;
+    }
+
+    let profile: Record<string, any> = {};
+    if (typeof order.user_id === 'string' && order.user_id.trim()) {
+      const { data, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, username, email')
+        .eq('id', order.user_id)
+        .maybeSingle();
+      if (profileError) console.warn('Admin order profile lookup warning:', profileError.message);
+      else profile = data ?? {};
+    }
+
+    res.status(200).json(normalizeOrderRecord({ ...order, profiles: profile }));
+  } catch (error: any) {
+    console.error('Admin get order error:', error);
+    res.status(500).json({ error: 'Failed to fetch order.', details: error.message });
   }
 };
 
@@ -435,7 +658,7 @@ export const updateAdminOrderStatus = async (req: Request, res: Response): Promi
 
     const { data: currentOrder, error: currentError } = await supabase
       .from('orders')
-      .select('id, status')
+      .select('*')
       .eq('id', id)
       .maybeSingle();
 
@@ -447,6 +670,11 @@ export const updateAdminOrderStatus = async (req: Request, res: Response): Promi
 
     const currentStatus = normalizeOrderStatus(currentOrder.status);
     const nextNormalizedStatus = normalizeOrderStatus(status);
+
+    if (currentStatus === nextNormalizedStatus) {
+      res.status(200).json(normalizeOrderRecord(currentOrder));
+      return;
+    }
 
     if (!isAllowedOrderTransition(currentStatus, nextNormalizedStatus)) {
       res.status(400).json({

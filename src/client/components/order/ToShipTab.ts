@@ -1,7 +1,17 @@
 import type { OrderItem } from "./OrdersPage.js";
 
 export function renderToShipTab(orders: OrderItem[], renderCard: (order: OrderItem) => string): string {
-  const filtered = orders.filter((o) => o.status === "ship");
+  const filtered = orders.filter((order) => {
+    const status = (order.status ?? "").toLowerCase();
+    const statusLabel = (order.statusLabel ?? "").toLowerCase();
+    const combined = `${status} ${statusLabel}`.trim();
+
+    return (
+      status === "ship" ||
+      combined.includes("to ship") ||
+      (combined.includes("ship") && !combined.includes("shipping") && !combined.includes("shipped"))
+    );
+  });
 
   if (filtered.length === 0) {
     return `

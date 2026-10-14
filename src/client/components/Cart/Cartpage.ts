@@ -406,7 +406,7 @@ export function createCartPage(): HTMLElement {
             shipping_address: shippingAddress,
             contact_number: contactNumber,
             payment_method: selectedPaymentMethod,
-            selected_items: Array.from(selectedItems) // Ipinapasa ang napiling IDs
+            selected_items: Array.from(selectedItems)
           }),
         });
 
@@ -414,13 +414,10 @@ export function createCartPage(): HTMLElement {
 
         if (response.ok) {
           showMessage('success', 'Order placed successfully!');
-          // Inalis na natin yung dispatch event na maglilipat ng page papuntang orders
-          
-          document.dispatchEvent(new CustomEvent('wma:order-created')); 
-          document.dispatchEvent(new CustomEvent('wma:cart-updated')); 
-          
-          // Magre-render lang tayo ulit sa cart para makita ang natirang items
-          render();
+          document.dispatchEvent(new CustomEvent('wma:order-created'));
+          document.dispatchEvent(new CustomEvent('wma:cart-updated'));
+          await cartManager.fetchCart();
+          await render();
         } else {
           showMessage('error', result.error || 'Checkout failed. Please try again.');
           checkoutButton.disabled = false;
@@ -440,5 +437,6 @@ export function createCartPage(): HTMLElement {
   }
 
   render();
+
   return page;
 }

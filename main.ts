@@ -28,6 +28,10 @@ function isAdminRoute(): boolean {
 function renderApp() {
   if (!app) return;
 
+  app.querySelectorAll<HTMLElement>(".site-main").forEach((page) => {
+    (page as HTMLElement & { destroy?: () => void }).destroy?.();
+  });
+
   if (isAdminRoute()) {
     if (!isAdminSession()) {
       window.location.hash = "";
@@ -210,7 +214,10 @@ document.addEventListener("wma:open-orders", (event) => {
   const dashboardPage = document.querySelector("#dashboard");
   if (dashboardPage) (dashboardPage as HTMLElement).hidden = true;
 
-  activeOrdersPage?.remove();
+  if (activeOrdersPage) {
+    (activeOrdersPage as HTMLElement & { destroy?: () => void }).destroy?.();
+    activeOrdersPage.remove();
+  }
 
   activeOrdersPage = createOrdersPage(targetStatus);
   insertPageBeforeFooter(activeOrdersPage);
@@ -219,6 +226,7 @@ document.addEventListener("wma:open-orders", (event) => {
 });
 
 document.addEventListener("wma:close-orders", () => {
+  (activeOrdersPage as (HTMLElement & { destroy?: () => void }) | null)?.destroy?.();
   activeOrdersPage?.remove();
   activeOrdersPage = null;
 
@@ -264,7 +272,10 @@ document.addEventListener("wma:navigate-section", () => {
   activeCartPage?.remove();
   activeCartPage = null;
 
-  activeOrdersPage?.remove();
+  if (activeOrdersPage) {
+    (activeOrdersPage as HTMLElement & { destroy?: () => void }).destroy?.();
+    activeOrdersPage.remove();
+  }
   activeOrdersPage = null;
 
   document.querySelectorAll<HTMLElement>(".site-main").forEach((section) => {

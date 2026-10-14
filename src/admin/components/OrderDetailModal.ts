@@ -13,7 +13,6 @@ export interface OrderDetailOptions {
 const PRIMARY_ACTION_LABEL: Partial<Record<OrderStatus, string>> = {
   pending_payment: "Approve payment",
   to_ship: "Mark as shipping",
-  shipping: "Mark as completed",
 };
 
 export function openOrderDetailModal({ order, onChangeStatus }: OrderDetailOptions): void {

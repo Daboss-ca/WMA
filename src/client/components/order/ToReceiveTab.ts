@@ -1,7 +1,20 @@
 import type { OrderItem } from "./OrdersPage.js";
 
 export function renderToReceiveTab(orders: OrderItem[], renderCard: (order: OrderItem) => string): string {
-  const filtered = orders.filter((o) => o.status === "receive");
+  const filtered = orders.filter((order) => {
+    const status = (order.status ?? "").toLowerCase();
+    const statusLabel = (order.statusLabel ?? "").toLowerCase();
+    const combined = `${status} ${statusLabel}`.trim();
+
+    return (
+      status === "receive" ||
+      statusLabel.includes("receive") ||
+      combined.includes("shipping") ||
+      combined.includes("shipped") ||
+      combined.includes("deliver") ||
+      combined.includes("delivery")
+    );
+  });
 
   if (filtered.length === 0) {
     return `

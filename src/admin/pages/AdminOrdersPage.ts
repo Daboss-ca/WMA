@@ -16,6 +16,7 @@ const matchesSearch = (order: Order, term: string): boolean =>
 export function createAdminOrdersPage(): AdminPage {
   let query = "";
   let status: StatusFilter = "all";
+  const updatingOrderIds = new Set<string>();
 
   const element = fromHTML<HTMLElement>(`
     <div class="admin-orders">
@@ -36,12 +37,17 @@ export function createAdminOrdersPage(): AdminPage {
   const tableHost = element.querySelector<HTMLElement>("[data-table]") as HTMLElement;
 
   const changeStatus = async (order: Order, next: OrderStatus): Promise<void> => {
+    if (updatingOrderIds.has(order.id) || adminStore.getOrder(order.id)?.status === next) return;
+    updatingOrderIds.add(order.id);
+    render();
     try {
       await adminStore.updateOrderStatus(order.id, next);
-      render();
       showToast(`${order.reference} → ${ORDER_STATUS_META[next].label}`, "success");
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Could not update this order.", "error");
+    } finally {
+      updatingOrderIds.delete(order.id);
+      render();
     }
   };
 
@@ -103,6 +109,7 @@ export function createAdminOrdersPage(): AdminPage {
     tableHost.replaceChildren(
       createOrderTable({
         orders: visible,
+        updatingOrderIds,
         onView: viewOrder,
         onStatusChange: requestStatusChange,
       })
@@ -123,5 +130,13 @@ export function createAdminOrdersPage(): AdminPage {
 
   render();
   const unsubscribe = adminStore.subscribe(render);
-  return { element, destroy: unsubscribe };
+  const stopRealtimeSync = adminStore.startRealtimeSync();
+
+  return {
+    element,
+    destroy: () => {
+      stopRealtimeSync();
+      unsubscribe();
+    },
+  };
 }

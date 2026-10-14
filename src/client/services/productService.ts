@@ -1,6 +1,7 @@
 import { catalogItems } from "../data/furnitureData.js";
 import { buildApiUrl } from "../config/api.js";
 import type { FurnitureCategory, FurnitureDimensions, FurnitureItem } from "../types/furniture.js";
+import type { ProductRealtimePayload } from "../config/supabase.js";
 
 type ProductApiRow = {
   id?: string | number;
@@ -60,7 +61,7 @@ function normalizeCategory(rawCategory: unknown): FurnitureCategory {
   return "Custom";
 }
 
-function mapCatalogRow(row: ProductApiRow): FurnitureItem {
+export function mapCatalogRow(row: ProductApiRow): FurnitureItem {
   const title = String(row.title ?? row.name ?? "Custom Item").trim() || "Custom Item";
   const price = toNumber(row.price);
   const imageUrl = String(row.image_url ?? row.imageUrl ?? "").trim();
@@ -77,6 +78,26 @@ function mapCatalogRow(row: ProductApiRow): FurnitureItem {
     inStock: toNumber(row.stock) > 0,
     isCustomizable: true,
   };
+}
+
+export function applyCatalogProductChange(
+  current: FurnitureItem[],
+  payload: ProductRealtimePayload
+): FurnitureItem[] | null {
+  const rawId = payload.new?.id ?? payload.old?.id;
+  if (typeof rawId !== "string" && typeof rawId !== "number") return null;
+  const id = String(rawId);
+
+  if (payload.eventType === "DELETE") {
+    return current.filter((item) => String(item.id) !== id);
+  }
+
+  if (!payload.new) return null;
+  const product = mapCatalogRow(payload.new as ProductApiRow);
+  const index = current.findIndex((item) => String(item.id) === id);
+  if (index < 0) return [...current, product];
+
+  return current.map((item, itemIndex) => itemIndex === index ? product : item);
 }
 
 export async function fetchCatalogProducts(): Promise<FurnitureItem[]> {

@@ -1,8 +1,58 @@
 import { Request, Response } from 'express';
 import { getSupabaseClient } from '../config/supabaseClient';
+import { normalizeOrderStatus } from './admin.controller';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const DEFAULT_ADMIN_UUID = '00000000-0000-0000-0000-000000000001';
+const MAX_MONEY_VALUE = 99_999_999.99;
+
+export function sanitizeNumericValue(value: unknown, fallback = 0): number {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return fallback;
+
+  const roundedValue = Number(Math.round((numericValue + Number.EPSILON) * 100) / 100);
+  if (!Number.isFinite(roundedValue)) return fallback;
+
+  if (Math.abs(roundedValue) >= 1e8) {
+    return Number((Math.sign(roundedValue) * MAX_MONEY_VALUE).toFixed(2));
+  }
+
+  return Number(roundedValue.toFixed(2));
+}
+
+export function sanitizeQuantity(value: unknown): number {
+  const quantity = Number(value);
+  if (!Number.isFinite(quantity) || quantity <= 0) return 0;
+
+  return Math.floor(quantity);
+}
+
+export function buildCheckoutOrderItems(cartItems: any[]) {
+  let totalAmount = 0;
+
+  const orderItems = cartItems.flatMap((item: any) => {
+    const quantity = sanitizeQuantity(item?.quantity);
+    const unitPrice = sanitizeNumericValue(item?.products?.price ?? item?.price ?? 0);
+
+    if (!item?.product_id || quantity <= 0 || unitPrice <= 0) {
+      return [];
+    }
+
+    const subtotal = sanitizeNumericValue(unitPrice * quantity);
+    totalAmount = sanitizeNumericValue(totalAmount + subtotal);
+
+    return [{
+      product_id: item.product_id,
+      quantity,
+      price: unitPrice,
+    }];
+  });
+
+  return {
+    orderItems,
+    total_amount: sanitizeNumericValue(totalAmount),
+  };
+}
 
 function resolveUserId(rawValue: unknown): string | null {
   const value = Array.isArray(rawValue) ? rawValue[0] : rawValue;
@@ -26,75 +76,29 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const { data: cartItems, error: cartError } = await supabase
-      .from('cart_items')
-      .select(`
-        *,
-        products (
-          price
-        )
-      `)
-      .eq('user_id', safeUserId)
-      .in('id', selected_items);
+    const selectedItemIds = [...new Set(selected_items
+      .map((id) => (typeof id === 'string' || typeof id === 'number' ? String(id).trim() : ''))
+      .filter(Boolean))];
 
-    if (cartError) throw cartError;
-
-    if (!cartItems || cartItems.length === 0) {
-      res.status(400).json({ error: 'No valid items found for checkout.' });
+    if (selectedItemIds.length === 0) {
+      res.status(400).json({ error: 'No valid cart item IDs were provided for checkout.' });
       return;
     }
 
-    let total_amount = 0;
-    const orderItemsToInsert = cartItems.map((item: any) => {
-      const unitPrice = item.products?.price || item.price || 0;
-      total_amount += unitPrice * item.quantity;
-
-      return {
-        product_id: item.product_id,
-        quantity: item.quantity,
-        price: unitPrice,
-      };
+    const { data: orderId, error: checkoutError } = await supabase.rpc('create_checkout_order', {
+      p_user_id: safeUserId,
+      p_shipping_address: String(shipping_address).trim(),
+      p_contact_number: String(contact_number ?? '').trim(),
+      p_payment_method: String(payment_method || 'gcash'),
+      p_cart_item_ids: selectedItemIds,
     });
 
-    const { data: orderData, error: orderError } = await supabase
-      .from('orders')
-      .insert([
-        {
-          user_id: safeUserId,
-          total_amount,
-          status: 'Pending',
-          shipping_address,
-          contact_number: contact_number || '',
-          payment_method: payment_method || 'gcash',
-        },
-      ])
-      .select()
-      .single();
-
-    if (orderError) throw orderError;
-    const order_id = orderData.id;
-
-    const finalOrderItems = orderItemsToInsert.map((item) => ({
-      ...item,
-      order_id,
-    }));
-
-    const { error: orderItemsError } = await supabase
-      .from('order_items')
-      .insert(finalOrderItems);
-
-    if (orderItemsError) throw orderItemsError;
-
-    const { error: clearCartError } = await supabase
-      .from('cart_items')
-      .delete()
-      .in('id', selected_items);
-
-    if (clearCartError) throw clearCartError;
+    if (checkoutError) throw checkoutError;
+    if (!orderId) throw new Error('Checkout completed without returning an order id.');
 
     res.status(201).json({
       message: 'Checkout completed successfully!',
-      order_id,
+      order_id: String(orderId),
     });
   } catch (error: any) {
     console.error('Checkout Error:', error);
@@ -192,5 +196,69 @@ export const uploadPaymentProof = async (req: Request, res: Response): Promise<v
   } catch (error: any) {
     console.error('Payment Upload Error:', error);
     res.status(500).json({ error: 'Failed to upload payment proof.', details: error.message });
+  }
+};
+
+export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const supabase = getSupabaseClient();
+    const { id } = req.params;
+    const { status, user_id } = req.body ?? {};
+    const safeUserId = resolveUserId(user_id ?? req.query.user_id ?? null);
+
+    if (!id) {
+      res.status(400).json({ error: 'Order id is required.' });
+      return;
+    }
+
+    const { data: currentOrder, error: currentError } = await supabase
+      .from('orders')
+      .select('id, status, user_id')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (currentError) throw currentError;
+    if (!currentOrder) {
+      res.status(404).json({ error: 'Order not found.' });
+      return;
+    }
+
+    if (safeUserId && currentOrder.user_id && safeUserId !== currentOrder.user_id) {
+      res.status(403).json({ error: 'You do not have permission to update this order.' });
+      return;
+    }
+
+    const currentStatus = normalizeOrderStatus(currentOrder.status);
+    const nextStatus = normalizeOrderStatus(status);
+
+    const isAllowed =
+      (currentStatus === 'shipping' && nextStatus === 'completed') ||
+      (currentStatus === 'completed' && nextStatus === 'completed');
+
+    if (!isAllowed) {
+      res.status(400).json({
+        error: `Order status cannot move from "${currentStatus}" to "${nextStatus}".`,
+      });
+      return;
+    }
+
+    const persistedStatus = nextStatus === 'completed' ? 'Completed' : 'Shipping';
+
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ status: persistedStatus })
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    res.status(200).json({
+      success: true,
+      order: data,
+    });
+  } catch (error: any) {
+    console.error('Update Order Status Error:', error);
+    res.status(500).json({ error: 'Failed to update order status.', details: error.message });
   }
 };

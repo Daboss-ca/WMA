@@ -1,7 +1,8 @@
 import { getCurrentUser } from "../state/sessionManager.js";
 import { catalogItems } from "../data/furnitureData.js";
-import { fetchCatalogProducts } from "../services/productService.js";
+import { applyCatalogProductChange, fetchCatalogProducts } from "../services/productService.js";
 import { buildApiUrl } from "../config/api.js";
+import { subscribeToOrdersRealtime, subscribeToProductsRealtime } from "../config/supabase.js";
 import { createCatalogProductFeed } from "./Catalog.js";
 
 type CatalogItem = (typeof catalogItems)[number];
@@ -168,6 +169,7 @@ export function createDashboardPage(): HTMLElement {
   let activeFilter = ALL_FILTER_ID;
 
   let liveCatalogItems: CatalogItem[] = [...catalogItems];
+  let catalogRevision = 0;
 
   const renderFeed = (announce: boolean): void => {
     if (!feedMount) return;
@@ -189,9 +191,29 @@ export function createDashboardPage(): HTMLElement {
 
   renderFeed(false);
 
-  void fetchCatalogProducts().then((items) => {
-    liveCatalogItems = items;
-    renderFeed(false);
+  const refreshCatalog = (): void => {
+    const revisionAtRequest = catalogRevision;
+    void fetchCatalogProducts()
+      .then((items) => {
+        if (revisionAtRequest !== catalogRevision) return;
+        liveCatalogItems = items;
+        renderFeed(false);
+      })
+      .catch((error) => {
+        console.error("[DashboardPage] catalog refresh failed:", error);
+      });
+  };
+
+  refreshCatalog();
+
+  const stopProductsRealtime = subscribeToProductsRealtime((payload) => {
+    console.log("[DashboardPage] applying product change:", payload);
+    catalogRevision++;
+    const nextItems = applyCatalogProductChange(liveCatalogItems, payload);
+    if (nextItems) {
+      liveCatalogItems = nextItems;
+      renderFeed(false);
+    }
   });
 
   filterBar?.addEventListener("click", (event) => {
@@ -226,38 +248,51 @@ export function createDashboardPage(): HTMLElement {
     });
   });
 
+  const dashboardOrders: { id: string; status: string }[] = [];
+  const realtimeOrderOverrides = new Map<string, { id: string; status: string } | null>();
+
+  const renderOrderCounts = (): void => {
+    const counts: Record<string, number> = { pay: 0, ship: 0, receive: 0, review: 0 };
+    dashboardOrders.forEach(({ status }) => {
+      const statusLower = status.trim().toLowerCase();
+      let key: keyof typeof counts = "pay";
+
+      if (statusLower.includes("cancel")) key = "review";
+      else if (statusLower.includes("pending") || statusLower.includes("pay")) key = "pay";
+      else if (statusLower.includes("review") || statusLower.includes("complete")) key = "review";
+      else if (["shipping", "shipped", "deliver", "delivery", "receive"].some((word) => statusLower.includes(word))) key = "receive";
+      else if (statusLower.includes("to ship") || statusLower.includes("ship")) key = "ship";
+      counts[key]++;
+    });
+
+    Object.entries(counts).forEach(([key, count]) => {
+      const countEl = page.querySelector(`[data-status-count="${key}"]`);
+      if (countEl) countEl.textContent = `${count} ${count === 1 ? "order" : "orders"}`;
+    });
+  };
+
   const fetchOrderCounts = async () => {
-    try {    
+    try {
       const response = await fetch(`${buildApiUrl('/orders')}?user_id=${user.id}`);
       const data = await response.json();
 
       if (response.ok && Array.isArray(data)) {
-        const counts: Record<string, number> = { pay: 0, ship: 0, receive: 0, review: 0 };
-        
-        data.forEach((order: any) => {
-          const statusLower = (order.status || "").toLowerCase();
-          let mappedStatus: keyof typeof counts = "pay";
-
-          if (!statusLower) mappedStatus = "pay";
-          else if (statusLower.includes("cancel")) mappedStatus = "review";
-          else if (statusLower.includes("pending") || statusLower.includes("pay")) mappedStatus = "pay";
-          else if (statusLower.includes("to ship") || (statusLower.includes("ship") && !statusLower.includes("shipping") && !statusLower.includes("shipped"))) mappedStatus = "ship";
-          else if (statusLower.includes("shipping") || statusLower.includes("shipped") || statusLower.includes("deliver") || statusLower.includes("receive")) mappedStatus = "receive";
-          else if (statusLower.includes("review") || statusLower.includes("complete") || statusLower.includes("delivered")) mappedStatus = "review";
-
-          if (counts[mappedStatus] !== undefined) {
-            counts[mappedStatus]++;
+        const fetchedOrders: { id: string; status: string }[] = data.map((order: any) => ({
+          id: String(order.id),
+          status: String(order.status ?? ""),
+        }));
+        for (const [id, override] of realtimeOrderOverrides) {
+          const index = fetchedOrders.findIndex((order) => order.id === id);
+          if (override === null) {
+            if (index >= 0) fetchedOrders.splice(index, 1);
+          } else if (index >= 0) {
+            fetchedOrders[index] = override;
+          } else {
+            fetchedOrders.unshift(override);
           }
-        });
-
-        Object.keys(counts).forEach(key => {
-          const countEl = page.querySelector(`[data-status-count="${key}"]`);
-          if (countEl) {
-            const num = counts[key];
-            const noun = num === 1 ? "order" : "orders";
-            countEl.textContent = `${num} ${noun}`;
-          }
-        });
+        }
+        dashboardOrders.splice(0, dashboardOrders.length, ...fetchedOrders);
+        renderOrderCounts();
       }
     } catch (error) {
       console.error("Error fetching order counts for dashboard:", error);
@@ -266,19 +301,32 @@ export function createDashboardPage(): HTMLElement {
 
   fetchOrderCounts();
 
-  document.addEventListener("wma:cart-updated", () => {
-    console.log("Cart updated/cleared! Refreshing order counts...");
-    fetchOrderCounts();
+  const stopOrdersRealtime = subscribeToOrdersRealtime((payload) => {
+    console.log("[DashboardPage] applying order change in local state:", payload);
+    const row = payload.eventType === "DELETE" ? payload.old : payload.new;
+    const id = row?.id === undefined || row.id === null ? "" : String(row.id);
+    if (!id) return;
+
+    const index = dashboardOrders.findIndex((order) => order.id === id);
+    if (payload.eventType === "DELETE") {
+      if (index >= 0) dashboardOrders.splice(index, 1);
+      realtimeOrderOverrides.set(id, null);
+    } else {
+      const ownerId = row?.user_id === undefined || row.user_id === null ? "" : String(row.user_id);
+      if (ownerId && ownerId !== user.id) return;
+      if (!ownerId && index < 0) return;
+      const next = { id, status: String(row?.status ?? dashboardOrders[index]?.status ?? "") };
+      if (index >= 0) dashboardOrders[index] = next;
+      else dashboardOrders.unshift(next);
+      realtimeOrderOverrides.set(id, next);
+    }
+    renderOrderCounts();
   });
 
-  document.addEventListener("wma:order-created", () => {
-    console.log("New checkout detected! Refreshing order counts...");
-    fetchOrderCounts();
-  });
-
-  window.addEventListener("focus", () => {
-    fetchOrderCounts();
-  });
+  (page as HTMLElement & { destroy?: () => void }).destroy = () => {
+    stopOrdersRealtime();
+    stopProductsRealtime();
+  };
 
   return page;
 }

@@ -1,12 +1,13 @@
 import type { AdminStats, Order, OrderStatus, Product, ProductInput, TrendPoint } from "../types/admin.js";
 import { buildApiUrl } from "../../client/config/api.js";
+import { subscribeToOrdersRealtime, SUPABASE_ORDERS_CHANNEL, type OrderRealtimePayload } from "../../client/config/supabase.js";
 
 const REVENUE_STATUSES: readonly OrderStatus[] = ["to_ship", "shipping", "completed"];
 
 export const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   pending_payment: ["to_ship", "cancelled"],
   to_ship: ["shipping", "cancelled"],
-  shipping: ["completed"],
+  shipping: [],
   completed: [],
   cancelled: [],
 };
@@ -21,29 +22,6 @@ export class AdminStorageError extends Error {
 type Listener = () => void;
 
 const sum = (values: number[]): number => values.reduce((total, value) => total + value, 0);
-
-function resolveUserId(): string | null {
-  if (typeof window === "undefined") return "admin-wma";
-
-  for (const storage of [window.localStorage, window.sessionStorage]) {
-    const direct = storage.getItem("user_id");
-    if (direct) return direct;
-
-    const raw = storage.getItem("user");
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as { id?: string | number; user_id?: string | number; _id?: string };
-        const id = parsed.user_id ?? parsed.id ?? parsed._id;
-        if (id !== undefined && id !== null && String(id) !== "") return String(id);
-      } catch {
-
-      }
-    }
-  }
-  
-  // Kung talagang walang makita, gamitin ang fallback para hindi maputol ang fetching
-  return "admin-wma";
-}
 
 function buildRevenueTrend(orders: Order[], days = 7): TrendPoint[] {
   const today = new Date();
@@ -71,26 +49,19 @@ function buildRevenueTrend(orders: Order[], days = 7): TrendPoint[] {
 class AdminStore {
   private products: Product[] = [];
   private orders: Order[] = [];
-  private userId: string | null = null;
+  private readonly userId = "admin-wma";
   private readonly listeners = new Set<Listener>();
+  private realtimeUnsubscribe: (() => void) | null = null;
+  private realtimeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    this.userId = resolveUserId();
+    this.startRealtimeSync();
     this.refreshAll().catch((error) => {
       console.error("[adminStore] initial load failed:", error);
     });
   }
 
-  setUserId(userId: string | null): void {
-    this.userId = userId || "admin-wma";
-    this.refreshAll().catch((error) => {
-      console.error("[adminStore] refresh after setUserId failed:", error);
-    });
-  }
-
   private requireUserId(): string {
-    const id = this.userId ?? resolveUserId();
-    this.userId = id || "admin-wma";
     return this.userId;
   }
 
@@ -99,6 +70,44 @@ class AdminStore {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  private scheduleOrdersRefresh(payload: OrderRealtimePayload): void {
+    if (payload.table !== "orders" || !["INSERT", "UPDATE", "DELETE"].includes(payload.eventType)) return;
+
+    if (this.realtimeRefreshTimer) clearTimeout(this.realtimeRefreshTimer);
+    this.realtimeRefreshTimer = setTimeout(() => {
+      this.realtimeRefreshTimer = null;
+      void this.refreshOrders().catch((error) => {
+        console.error("[adminStore] realtime order list refresh failed:", error);
+      });
+    }, 75);
+  }
+
+  startRealtimeSync(): () => void {
+    if (this.realtimeUnsubscribe) {
+      return () => this.stopRealtimeSync();
+    }
+
+    this.realtimeUnsubscribe = subscribeToOrdersRealtime((payload) => {
+      console.log("[adminStore] refreshing full order state after payload:", payload);
+      this.scheduleOrdersRefresh(payload);
+    }, SUPABASE_ORDERS_CHANNEL);
+
+    return () => this.stopRealtimeSync();
+  }
+
+  stopRealtimeSync(): void {
+    if (this.realtimeRefreshTimer) {
+      clearTimeout(this.realtimeRefreshTimer);
+      this.realtimeRefreshTimer = null;
+    }
+    if (!this.realtimeUnsubscribe) {
+      return;
+    }
+
+    this.realtimeUnsubscribe();
+    this.realtimeUnsubscribe = null;
   }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -159,7 +168,8 @@ class AdminStore {
       method: "POST",
       body: JSON.stringify(input),
     });
-    await this.refreshProducts();
+    this.products = [product, ...this.products.filter((item) => item.id !== product.id)];
+    this.emit();
     return product;
   }
 
@@ -168,7 +178,8 @@ class AdminStore {
       method: "PUT",
       body: JSON.stringify(input),
     });
-    await this.refreshProducts();
+    this.products = this.products.map((item) => item.id === id ? product : item);
+    this.emit();
     return product;
   }
 
@@ -192,6 +203,8 @@ class AdminStore {
     const existing = this.orders.find((order) => order.id === id);
     if (!existing) throw new AdminStorageError(`Order not found: ${id}`);
 
+    if (existing.status === next) return existing;
+
     const allowedNext = ORDER_STATUS_TRANSITIONS[existing.status] ?? [];
     if (!allowedNext.includes(next)) {
       throw new AdminStorageError(`An order can't move from "${existing.status}" to "${next}".`);
@@ -202,9 +215,8 @@ class AdminStore {
       body: JSON.stringify({ status: next }),
     });
 
-    this.orders = this.orders.map((order) => (order.id === id ? updated : order));
-    this.emit();
-    return updated;
+    await this.refreshOrders();
+    return this.orders.find((order) => order.id === id) ?? updated;
   }
 
   getStats(): AdminStats {

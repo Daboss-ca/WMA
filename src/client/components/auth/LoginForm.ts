@@ -67,9 +67,7 @@ export function attachLoginFormEvents(): void {
 
     try {
       if (isAdminCredentials) {
-        const rememberMe = rememberCheckbox ? rememberCheckbox.checked : false;
-        const adminUser = setAdminSession();
-        setCurrentUser(adminUser, rememberMe);
+        setAdminSession();
 
         uiState.setLoading('login-submit-btn', false, 'Sign In');
         uiState.showAlert({ type: 'success', text: 'Admin login successful. Redirecting...' });

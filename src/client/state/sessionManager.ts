@@ -11,35 +11,45 @@ export const ADMIN_USERNAME = 'wma';
 export const ADMIN_PASSWORD = 'wma';
 
 export function isAdminSession(): boolean {
-  return localStorage.getItem(ADMIN_AUTH_KEY) === 'true';
+  if (sessionStorage.getItem(ADMIN_AUTH_KEY) === 'true') return true;
+
+  // Migrate older persistent admin flags to this tab so they cannot affect other tabs.
+  if (localStorage.getItem(ADMIN_AUTH_KEY) === 'true') {
+    sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+    localStorage.removeItem(ADMIN_AUTH_KEY);
+    return true;
+  }
+
+  return false;
 }
 
-export function setAdminSession(): User {
-  const adminUser: User = {
-    id: 'admin-wma',
-    fullName: 'WMA Administrator',
-    username: ADMIN_USERNAME,
-    email: ADMIN_USERNAME,
-    phone: 'N/A',
-    shippingAddress: 'N/A',
-    createdAt: new Date().toISOString(),
-  };
+function removeLegacyAdminUserRecord(): void {
+  for (const storage of [localStorage, sessionStorage]) {
+    const raw = storage.getItem(ACTIVE_USER_KEY);
+    if (!raw) continue;
+    try {
+      const user = JSON.parse(raw) as { id?: string };
+      if (user.id === 'admin-wma') storage.removeItem(ACTIVE_USER_KEY);
+    } catch {
+      // Leave malformed client data untouched; getCurrentUser handles parsing as before.
+    }
+  }
+}
 
-  localStorage.setItem(ADMIN_AUTH_KEY, 'true');
-  localStorage.removeItem(ACTIVE_USER_KEY);
-  sessionStorage.removeItem(ACTIVE_USER_KEY);
-  localStorage.setItem('wma_last_active_cart_user', adminUser.id);
-  sessionStorage.setItem('wma_last_active_cart_user', adminUser.id);
-
-  localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(adminUser));
-  emitAuthChanged(adminUser, 'login');
-  return adminUser;
+export function setAdminSession(): void {
+  sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+  localStorage.removeItem(ADMIN_AUTH_KEY);
+  removeLegacyAdminUserRecord();
+  // Preserve any customer session; getCurrentUser hides it while admin mode is active.
+  notifySessionChanged();
 }
 
 export function clearAdminSession(): void {
   localStorage.removeItem(ADMIN_AUTH_KEY);
   sessionStorage.removeItem(ADMIN_AUTH_KEY);
-  clearSession();
+  removeLegacyAdminUserRecord();
+  const clientUser = getCurrentUser();
+  emitAuthChanged(clientUser, clientUser ? 'login' : 'logout');
 }
 
 function notifySessionChanged(): void {
@@ -95,6 +105,8 @@ export function findUserByEmail(email: string): User | undefined {
 
 // Kunin ang kasalukuyang logged-in user (pwedeng sa localStorage o sessionStorage)
 export function getCurrentUser(): User | null {
+  if (isAdminSession()) return null;
+
   const localUser = localStorage.getItem(ACTIVE_USER_KEY);
   if (localUser) return JSON.parse(localUser);
 
@@ -106,6 +118,8 @@ export function getCurrentUser(): User | null {
 
 // I-set ang active session (Remember Me = localStorage, else = sessionStorage)
 export function setCurrentUser(user: User, rememberMe: boolean): void {
+  localStorage.removeItem(ADMIN_AUTH_KEY);
+  sessionStorage.removeItem(ADMIN_AUTH_KEY);
   localStorage.removeItem(ACTIVE_USER_KEY);
   sessionStorage.removeItem(ACTIVE_USER_KEY);
 
@@ -147,8 +161,11 @@ export function updateCurrentUserProfile(updates: Partial<User>): User | null {
     createdAt: currentUser.createdAt,
   };
 
-  localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(nextUser));
-  sessionStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(nextUser));
+  if (localStorage.getItem(ACTIVE_USER_KEY) !== null) {
+    localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(nextUser));
+  } else {
+    sessionStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(nextUser));
+  }
   emitAuthChanged(nextUser, 'login');
   return nextUser;
 }
