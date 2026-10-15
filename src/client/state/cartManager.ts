@@ -14,9 +14,11 @@ export interface CartItem {
 }
 
 const CART_STORAGE_KEY_PREFIX = 'wma_cart_items';
-const LAST_ACTIVE_CART_USER_KEY = 'wma_last_active_cart_user';
+const GUEST_CART_STORAGE_KEY = `${CART_STORAGE_KEY_PREFIX}:guest`;
+let cartSyncPromise: Promise<void> | null = null;
 
 let cartItems: CartItem[] = [];
+let activeCartOwnerId = getCurrentUser()?.id ?? null;
 
 function getActiveCartStorageKey(): string {
   const user = getCurrentUser();
@@ -24,13 +26,7 @@ function getActiveCartStorageKey(): string {
   if (user?.id) {
     return `${CART_STORAGE_KEY_PREFIX}:${user.id}`;
   }
-
-  const rememberedUserId =
-    localStorage.getItem(LAST_ACTIVE_CART_USER_KEY) ||
-    sessionStorage.getItem(LAST_ACTIVE_CART_USER_KEY) ||
-    'guest';
-
-  return `${CART_STORAGE_KEY_PREFIX}:${rememberedUserId}`;
+  return GUEST_CART_STORAGE_KEY;
 }
 
 const normalizeCartItem = (input: any): CartItem | null => {
@@ -89,11 +85,9 @@ function persistCart(): void {
   }
 }
 
-function readPersistedCart(): CartItem[] {
-  const key = getActiveCartStorageKey();
-
+function readPersistedCart(key = getActiveCartStorageKey()): CartItem[] {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(key) ?? sessionStorage.getItem(key);
     if (!raw) return [];
 
     const parsed = JSON.parse(raw);
@@ -109,8 +103,112 @@ function readPersistedCart(): CartItem[] {
   }
 }
 
+function mergeCartItems(baseItems: CartItem[], additionalItems: CartItem[], addQuantities: boolean): CartItem[] {
+  const merged = new Map<string, CartItem>();
+  for (const item of baseItems) merged.set(item.productId, { ...item });
+
+  for (const item of additionalItems) {
+    const current = merged.get(item.productId);
+    if (!current) {
+      merged.set(item.productId, { ...item });
+      continue;
+    }
+
+    const hasUsefulText = (value: string, generic: string): boolean => Boolean(value.trim() && value !== generic);
+    const quantity = addQuantities ? current.quantity + item.quantity : current.quantity;
+    merged.set(item.productId, {
+      ...current,
+      id: current.id || item.id,
+      name: hasUsefulText(current.name, 'Custom Item') ? current.name : item.name,
+      category: hasUsefulText(current.category, 'General') ? current.category : item.category,
+      dimensions: hasUsefulText(current.dimensions, 'Standard') ? current.dimensions : item.dimensions,
+      unitPrice: current.unitPrice > 0 ? current.unitPrice : item.unitPrice,
+      imageUrl: current.imageUrl && current.imageUrl !== '/placeholder.jpg' ? current.imageUrl : item.imageUrl,
+      quantity: Math.min(20, quantity),
+    });
+  }
+
+  return [...merged.values()];
+}
+
+async function fetchServerCart(userId: string): Promise<CartItem[]> {
+  const response = await fetch(buildApiUrl(`/cart/${userId}`));
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.error || 'Failed to fetch cart.');
+
+  return (Array.isArray(data?.items) ? data.items : [])
+    .map((item: any) => mergeFetchedCartItem(item))
+    .filter((item: CartItem | null): item is CartItem => item !== null);
+}
+
+async function writeCartItemToServer(userId: string, item: CartItem): Promise<void> {
+  const response = await fetch(buildApiUrl('/cart'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      productId: item.productId,
+      name: item.name,
+      category: item.category,
+      dimensions: item.dimensions,
+      unitPrice: item.unitPrice,
+      imageUrl: item.imageUrl,
+      quantity: item.quantity,
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.error || 'Failed to sync cart item.');
+}
+
+async function syncAuthenticatedCart(userId: string): Promise<void> {
+  const userStorageKey = `${CART_STORAGE_KEY_PREFIX}:${userId}`;
+  const guestItems = readPersistedCart(GUEST_CART_STORAGE_KEY);
+  const localUserItems = readPersistedCart(userStorageKey);
+
+  try {
+    const serverItems = await fetchServerCart(userId);
+    let mergedItems = mergeCartItems(serverItems, localUserItems, false);
+    mergedItems = mergeCartItems(mergedItems, guestItems, true);
+
+    cartItems = mergedItems;
+    notifyCartUpdate();
+
+    // The endpoint upserts quantity, so write the final merged quantity once per product.
+    // Remove each guest entry only after its final quantity has reached the server.
+    const guestProductIds = new Set(guestItems.map((item) => item.productId));
+    const remainingGuestItems = new Map(guestItems.map((item) => [item.productId, item]));
+    for (const item of mergedItems) {
+      await writeCartItemToServer(userId, item);
+      if (guestProductIds.has(item.productId)) {
+        remainingGuestItems.delete(item.productId);
+        localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify([...remainingGuestItems.values()]));
+      }
+    }
+
+    localStorage.removeItem(GUEST_CART_STORAGE_KEY);
+    sessionStorage.removeItem(GUEST_CART_STORAGE_KEY);
+    persistCart();
+    try {
+      const refreshedItems = await fetchServerCart(userId);
+      cartItems = mergeCartItems(refreshedItems, mergedItems, false);
+    } catch (error) {
+      console.error('Error refreshing synced cart:', error);
+    }
+    emitCartUpdate();
+  } catch (error) {
+    // Keep both the merged local cart and guest copy so a later login can retry.
+    cartItems = mergeCartItems(localUserItems, readPersistedCart(GUEST_CART_STORAGE_KEY), true);
+    notifyCartUpdate();
+    console.error('Error syncing guest cart:', error);
+  }
+}
+
 function emitCartUpdate(): void {
   persistCart();
+  notifyCartUpdate();
+}
+
+function notifyCartUpdate(): void {
   document.dispatchEvent(new CustomEvent('wma:cart-updated'));
 }
 
@@ -180,22 +278,16 @@ export const cartManager = {
   getItems: (): CartItem[] => [...cartItems],
 
   fetchCart: async (): Promise<void> => {
+    if (cartSyncPromise) await cartSyncPromise;
     const user = getCurrentUser();
     if (!user || !user.id) {
       cartItems = readPersistedCart();
-      emitCartUpdate();
+      notifyCartUpdate();
       return;
     }
 
     try {
-      const response = await fetch(buildApiUrl(`/cart/${user.id}`));
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.error || 'Failed to fetch cart.');
-      }
-
-      const fetchedItems = Array.isArray(data?.items) ? data.items : [];
+      const fetchedItems = await fetchServerCart(user.id);
 
       // Match API cart rows with locally saved product details by product ID.
       // The API may currently return generic values such as Custom Item / 0.
@@ -205,23 +297,29 @@ export const cartManager = {
         localByProductId.set(item.productId, item);
       });
 
-      const nextItems = fetchedItems
-        .map((item: any) => {
-          const productId = String(item?.product_id ?? item?.productId ?? item?.id ?? '');
-          return mergeFetchedCartItem(item, localByProductId.get(productId));
-        })
-        .filter((item: CartItem | null): item is CartItem => item !== null);
+      const nextItems = fetchedItems.map((item) => {
+        const localItem = localByProductId.get(item.productId);
+        return localItem ? mergeCartItems([item], [localItem], false)[0] : item;
+      });
 
       cartItems = nextItems;
       emitCartUpdate();
     } catch (error) {
       console.error('Error fetching cart:', error);
-      cartItems = readPersistedCart();
-      emitCartUpdate();
+      const userId = getCurrentUser()?.id;
+      cartItems = userId
+        ? mergeCartItems(
+            readPersistedCart(`${CART_STORAGE_KEY_PREFIX}:${userId}`),
+            readPersistedCart(GUEST_CART_STORAGE_KEY),
+            true,
+          )
+        : readPersistedCart(GUEST_CART_STORAGE_KEY);
+      notifyCartUpdate();
     }
   },
 
   addItem: async (newItem: any): Promise<void> => {
+    if (cartSyncPromise) await cartSyncPromise;
     const user = getCurrentUser();
     const normalized = normalizeCartItem({
       ...newItem,
@@ -287,6 +385,7 @@ export const cartManager = {
   },
 
   updateQuantity: async (id: string, newQuantity: number): Promise<void> => {
+    if (cartSyncPromise) await cartSyncPromise;
     const user = getCurrentUser();
     const targetItem = cartItems.find((item) => item.id === id || item.productId === id);
     if (!targetItem) return;
@@ -331,6 +430,7 @@ export const cartManager = {
   },
 
   removeItem: async (id: string): Promise<void> => {
+    if (cartSyncPromise) await cartSyncPromise;
     const nextItems = cartItems.filter((item) => item.id !== id && item.productId !== id);
     cartItems = nextItems;
     persistCart();
@@ -361,7 +461,9 @@ export const cartManager = {
 
 document.addEventListener('wma:session-cleared', () => {
   if (cartItems.length > 0) {
-    const persistedKey = getActiveCartStorageKey();
+    const persistedKey = activeCartOwnerId
+      ? `${CART_STORAGE_KEY_PREFIX}:${activeCartOwnerId}`
+      : GUEST_CART_STORAGE_KEY;
     localStorage.setItem(persistedKey, JSON.stringify(cartItems));
   }
 });
@@ -371,12 +473,25 @@ document.addEventListener('wma:auth-changed', (event: Event) => {
   const nextUserId = detail?.userId ?? detail?.user?.id ?? null;
 
   if (nextUserId) {
-    localStorage.setItem(LAST_ACTIVE_CART_USER_KEY, nextUserId);
-    sessionStorage.setItem(LAST_ACTIVE_CART_USER_KEY, nextUserId);
+    activeCartOwnerId = nextUserId;
+    const syncPromise = syncAuthenticatedCart(nextUserId);
+    cartSyncPromise = syncPromise;
+    void syncPromise.finally(() => {
+      if (cartSyncPromise === syncPromise) cartSyncPromise = null;
+    });
+    return;
   }
 
-  if (detail?.reason === 'login' || detail?.reason === 'logout' || !nextUserId) {
-    cartItems = readPersistedCart();
-    emitCartUpdate();
-  }
+  activeCartOwnerId = null;
+  cartItems = readPersistedCart(GUEST_CART_STORAGE_KEY);
+  emitCartUpdate();
 });
+
+const initialUser = getCurrentUser();
+if (initialUser?.id) {
+  const syncPromise = syncAuthenticatedCart(initialUser.id);
+  cartSyncPromise = syncPromise;
+  void syncPromise.finally(() => {
+    if (cartSyncPromise === syncPromise) cartSyncPromise = null;
+  });
+}

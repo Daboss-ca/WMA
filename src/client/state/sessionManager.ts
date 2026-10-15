@@ -133,9 +133,6 @@ export function setCurrentUser(user: User, rememberMe: boolean): void {
     createdAt: user.createdAt,
   };
 
-  localStorage.setItem('wma_last_active_cart_user', sessionUser.id);
-  sessionStorage.setItem('wma_last_active_cart_user', sessionUser.id);
-
   if (rememberMe) {
     localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(sessionUser));
   } else {

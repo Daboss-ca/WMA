@@ -25,7 +25,7 @@ export const mapCartItem = (item: any) => {
     name: product?.title || 'Custom Item',
     category: product?.category || 'General',
     dimensions: product?.dimensions || 'Standard',
-    price: typeof product?.price === 'number' ? product.price : 0,
+    price: Number.isFinite(Number(product?.price)) ? Number(product.price) : 0,
     image_url: product?.image_url || '',
   };
 };
@@ -78,14 +78,14 @@ export const addToCart = async (req: Request, res: Response): Promise<void> => {
 
     if (cartError) {
       console.warn('Cart upsert fallback triggered:', cartError.message);
-      res.status(200).json({ message: 'Cart updated successfully!', data: [] });
+      res.status(500).json({ error: 'Failed to update cart item.' });
       return;
     }
 
     res.status(200).json({ message: 'Cart updated successfully!', data });
   } catch (error: any) {
     console.error('Add to Cart Error:', error);
-    res.status(200).json({ message: 'Cart updated successfully!', data: [] });
+    res.status(500).json({ error: 'Failed to update cart item.' });
   }
 };
 
@@ -109,25 +109,36 @@ export const getCart = async (req: Request, res: Response): Promise<void> => {
 
     if (error) {
       console.warn('Cart fetch fallback triggered:', error.message);
-      res.status(200).json({ items: [] });
+      res.status(500).json({ error: 'Failed to fetch cart.' });
       return;
     }
 
-    const formattedItems = (data || []).map((item: any) => ({
-      id: item.id,
-      product_id: item.product_id,
-      quantity: item.quantity ?? 1,
-      name: 'Custom Item',
-      category: 'General',
-      dimensions: 'Standard',
-      price: 0,
-      image_url: '',
+    const cartRows = data || [];
+    const productIds = [...new Set(cartRows.map((item: any) => item.product_id).filter(Boolean))];
+    let productsById = new Map<string, any>();
+
+    if (productIds.length > 0) {
+      const { data: products, error: productsError } = await supabase
+        .from('products')
+        .select('id, title, category, dimensions, price, image_url')
+        .in('id', productIds);
+
+      if (productsError) {
+        console.warn('Cart product details fallback triggered:', productsError.message);
+      } else {
+        productsById = new Map((products || []).map((product: any) => [String(product.id), product]));
+      }
+    }
+
+    const formattedItems = cartRows.map((item: any) => mapCartItem({
+      ...item,
+      products: productsById.get(String(item.product_id)),
     }));
 
     res.status(200).json({ items: formattedItems });
   } catch (error: any) {
     console.error('Fetch Cart Error:', error);
-    res.status(200).json({ items: [] });
+    res.status(500).json({ error: 'Failed to fetch cart.' });
   }
 };
 
