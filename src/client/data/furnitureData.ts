@@ -1,15 +1,5 @@
 import type { FurnitureItem } from "../types/furniture";
 
-// Import Kiosk image assets dynamically for Vite
-import img1 from "../assets/catalogs/kiosk/img1.png";
-import img2 from "../assets/catalogs/kiosk/img2.png";
-import img3 from "../assets/catalogs/kiosk/img3.png";
-import img4 from "../assets/catalogs/kiosk/img4.png";
-import img5 from "../assets/catalogs/kiosk/img5.png";
-import img6 from "../assets/catalogs/kiosk/img6.png";
-import img7 from "../assets/catalogs/kiosk/img7.png";
-import img8 from "../assets/catalogs/kiosk/img8.png";
-
 export const catalogItems: FurnitureItem[] = [
   {
     id: "kio-001",
@@ -18,7 +8,7 @@ export const catalogItems: FurnitureItem[] = [
     description: "Modular pine kiosk built for weekend markets and pop-ups.",
     price: 1850,
     dimensions: { width: 48, height: 78, depth: 30, unit: "in" },
-    imageUrl: img1,
+    imageUrl: "/kiosk/img1.png",
     imageAlt: "Classic Market Display Kiosk",
     inStock: true,
   },
@@ -29,7 +19,7 @@ export const catalogItems: FurnitureItem[] = [
     description: "Versatile wooden kiosk setup designed for retail product displays.",
     price: 2450,
     dimensions: { width: 60, height: 80, depth: 36, unit: "in" },
-    imageUrl: img2,
+    imageUrl: "/kiosk/img2.png",
     imageAlt: "Modular Retail Kiosk",
     isCustomizable: true,
     inStock: true,
@@ -41,7 +31,7 @@ export const catalogItems: FurnitureItem[] = [
     description: "Premium finished hardwood kiosk tailored for indoor mall spaces.",
     price: 3900,
     dimensions: { width: 72, height: 84, depth: 42, unit: "in" },
-    imageUrl: img3,
+    imageUrl: "/kiosk/img3.png",
     imageAlt: "Commercial Mall Kiosk",
     isCustomizable: true,
     inStock: false,
@@ -53,7 +43,7 @@ export const catalogItems: FurnitureItem[] = [
     description: "Heavy-duty custom timber kiosk with integrated counter space.",
     price: 3200,
     dimensions: { width: 96, height: 90, depth: 48, unit: "in" },
-    imageUrl: img4,
+    imageUrl: "/kiosk/img4.png",
     imageAlt: "Custom Event & Food Kiosk",
     isCustomizable: true,
     inStock: true,
@@ -65,7 +55,7 @@ export const catalogItems: FurnitureItem[] = [
     description: "Sleek white mobile cart featuring perimeter warm LED lighting, acrylic signage mounts, and heavy-duty caster wheels.",
     price: 2750,
     dimensions: { width: 48, height: 40, depth: 26, unit: "in" },
-    imageUrl: img5,
+    imageUrl: "/kiosk/img5.png",
     imageAlt: "Luminous Display Mobile Cart with LED perimeter lighting",
     isCustomizable: true,
     inStock: true,
@@ -77,7 +67,7 @@ export const catalogItems: FurnitureItem[] = [
     description: "Compact espresso service cart with a natural oak countertop, contrast black frame, white paneling, and mobile wheels.",
     price: 2950,
     dimensions: { width: 52, height: 38, depth: 28, unit: "in" },
-    imageUrl: img6,
+    imageUrl: "/kiosk/img6.png",
     imageAlt: "Artisanal Coffee Bar Cart with natural oak top",
     isCustomizable: true,
     inStock: true,
@@ -89,7 +79,7 @@ export const catalogItems: FurnitureItem[] = [
     description: "Dual-tier mobile beverage bar featuring an elevated serving shelf, ambient backlit front paneling, and lockable casters.",
     price: 3400,
     dimensions: { width: 54, height: 44, depth: 30, unit: "in" },
-    imageUrl: img7,
+    imageUrl: "/kiosk/img7.png",
     imageAlt: "Executive Bistro Bar Counter with elevated shelf",
     isCustomizable: true,
     inStock: true,
@@ -101,7 +91,7 @@ export const catalogItems: FurnitureItem[] = [
     description: "Themed dessert display stand with 3D waffle-pattern front panel, white drip trim, overhead signage frame, and heavy-duty wheels.",
     price: 2850,
     dimensions: { width: 48, height: 82, depth: 28, unit: "in" },
-    imageUrl: img8,
+    imageUrl: "/kiosk/img8.png",
     imageAlt: "Themed Ice Cream Stand with waffle texture paneling",
     isCustomizable: true,
     inStock: true,
