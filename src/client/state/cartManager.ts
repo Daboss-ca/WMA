@@ -1,5 +1,6 @@
 import { getCurrentUser } from "./sessionManager.js";
 import { buildApiUrl } from "../config/api.js";
+import { normalizeImagePath } from "../utils/imagePaths.js";
 
 export interface CartItem {
   id: string;
@@ -59,11 +60,11 @@ const normalizeCartItem = (input: any): CartItem | null => {
       : 'Standard';
   const imageUrl =
     typeof input?.imageUrl === 'string' && input.imageUrl.trim()
-      ? input.imageUrl.trim()
+      ? normalizeImagePath(input.imageUrl.trim())
       : typeof input?.image === 'string' && input.image.trim()
-        ? input.image.trim()
+      ? normalizeImagePath(input.image.trim())
         : typeof input?.image_url === 'string' && input.image_url.trim()
-          ? input.image_url.trim()
+          ? normalizeImagePath(input.image_url.trim())
           : '/placeholder.jpg';
 
   return {

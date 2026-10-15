@@ -1,5 +1,6 @@
 import { AUTH_CHANGED_EVENT, getCurrentUser, isAdminSession, LOGOUT_EVENT, SESSION_CHANGED_EVENT } from "../../state/sessionManager.js";
 import { buildApiUrl } from "../../config/api.js";
+import { normalizeImagePath } from "../../utils/imagePaths.js";
 import { subscribeToOrdersRealtime } from "../../config/supabase.js";
 import { renderToPayTab } from "./ToPayTab.js";
 import { renderToShipTab } from "./ToShipTab.js";
@@ -539,7 +540,9 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
                 category: String(product?.category ?? "Category"),
                 unitPrice: Number.isFinite(rawPrice) ? rawPrice : 0,
                 quantity: Number.isFinite(rawQuantity) && rawQuantity > 0 ? rawQuantity : 1,
-                imageUrl: product?.image_url ? String(product.image_url) : undefined,
+                imageUrl: product?.image_url
+                  ? normalizeImagePath(String(product.image_url))
+                  : undefined,
                 dimensions: dimensionsText ? `Dimensions: ${dimensionsText}` : "",
               };
             });

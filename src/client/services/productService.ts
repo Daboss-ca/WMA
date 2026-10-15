@@ -1,5 +1,6 @@
 import { catalogItems } from "../data/furnitureData.js";
 import { buildApiUrl } from "../config/api.js";
+import { normalizeImagePath } from "../utils/imagePaths.js";
 import type { FurnitureCategory, FurnitureDimensions, FurnitureItem } from "../types/furniture.js";
 import type { ProductRealtimePayload } from "../config/supabase.js";
 
@@ -64,7 +65,7 @@ function normalizeCategory(rawCategory: unknown): FurnitureCategory {
 export function mapCatalogRow(row: ProductApiRow): FurnitureItem {
   const title = String(row.title ?? row.name ?? "Custom Item").trim() || "Custom Item";
   const price = toNumber(row.price);
-  const imageUrl = String(row.image_url ?? row.imageUrl ?? "").trim();
+  const imageUrl = normalizeImagePath(String(row.image_url ?? row.imageUrl ?? "").trim());
 
   return {
     id: String(row.id ?? title),
