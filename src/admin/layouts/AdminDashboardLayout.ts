@@ -1,5 +1,4 @@
 import logoSvg from "../../client/assets/logo/logo.svg";
-import { icon } from "../components/icons.js";
 import { createSidebar, type SidebarItem } from "../components/Sidebar.js";
 import type { AdminRouteKey } from "../types/admin.js";
 import { escapeHtml, fromHTML } from "../utils/dom.js";
@@ -11,7 +10,6 @@ const MOBILE_QUERY = "(max-width: 959px)";
 export interface AdminLayoutOptions {
   navItems: SidebarItem[];
   adminName?: string;
-  onResetData?: () => void;
   onLogout?: () => void;
 }
 
@@ -25,7 +23,6 @@ export interface AdminLayoutController {
 export function createAdminDashboardLayout({
   navItems,
   adminName = "Admin",
-  onResetData,
   onLogout,
 }: AdminLayoutOptions): AdminLayoutController {
   const initials = adminName
@@ -56,13 +53,6 @@ export function createAdminDashboardLayout({
             </a>
 
             <div class="admin-header__actions">
-              <a class="admin-header__link" href="/" target="_blank" rel="noopener noreferrer">
-                ${icon("store", 18)}<span>View store</span>
-              </a>
-              <button type="button" class="admin-theme-toggle" data-theme-toggle aria-label="Switch to light mode">
-                <span class="admin-theme-toggle__icon" aria-hidden="true">${preferredTheme === "dark" ? "☀" : "☾"}</span>
-                <span class="admin-theme-toggle__label">${preferredTheme === "dark" ? "Light mode" : "Dark mode"}</span>
-              </button>
               <div class="profile-menu">
                 <button type="button" class="profile-menu__trigger" aria-expanded="false" aria-controls="admin-profile-panel" aria-label="Open admin menu">
                   <span class="user-avatar" aria-hidden="true">${escapeHtml(initials)}</span>
@@ -74,7 +64,10 @@ export function createAdminDashboardLayout({
                     <strong>${escapeHtml(adminName)}</strong>
                     <span>Administrator</span>
                   </div>
-                  <button type="button" class="profile-menu__item" data-action="reset">Reset demo data</button>
+                  <button type="button" class="admin-theme-toggle profile-menu__theme" data-theme-toggle aria-label="Switch to light mode">
+                    <span class="admin-theme-toggle__icon" aria-hidden="true">${preferredTheme === "dark" ? "☀" : "☾"}</span>
+                    <span class="admin-theme-toggle__label">${preferredTheme === "dark" ? "Light mode" : "Dark mode"}</span>
+                  </button>
                   <button type="button" class="profile-menu__item profile-menu__item--danger" data-action="logout">Log out</button>
                 </div>
               </div>
@@ -152,7 +145,6 @@ export function createAdminDashboardLayout({
 
   navToggle.addEventListener("click", () => {
     if (isMobile()) setDrawer(!shell.classList.contains("is-drawer-open"));
-    else toggleCollapsed();
   });
   overlay.addEventListener("click", closeDrawer);
   document.addEventListener("keydown", (event) => {
@@ -174,7 +166,6 @@ export function createAdminDashboardLayout({
   profilePanel.addEventListener("click", (event) => {
     const action = (event.target as HTMLElement).closest<HTMLElement>("[data-action]")?.dataset.action;
     setProfileOpen(false);
-    if (action === "reset") onResetData?.();
     if (action === "logout") onLogout?.();
   });
 

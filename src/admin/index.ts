@@ -1,8 +1,6 @@
 import "./styles/admin.css";
 import type { IconName } from "./components/icons.js";
-import { showToast } from "./components/Toast.js";
 import { createAdminDashboardLayout } from "./layouts/AdminDashboardLayout.js";
-import { adminStore } from "./services/adminStore.js";
 import { createAdminOrdersPage } from "./pages/AdminOrdersPage.js";
 import { createAdminOverviewPage } from "./pages/AdminOverviewPage.js";
 import { createAdminProductsPage } from "./pages/AdminProductsPage.js";
@@ -52,10 +50,6 @@ export function mountAdminApp(root: HTMLElement): () => void {
       href: routeHash(key),
       icon: ROUTES[key].icon,
     })),
-    onResetData: () => {
-      adminStore.resetDemoData();
-      showToast("Demo data restored", "success");
-    },
     onLogout: () => {
       clearAdminSession();
       window.location.hash = "#/";

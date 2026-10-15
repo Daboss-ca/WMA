@@ -234,11 +234,6 @@ class AdminStore {
     };
   }
 
-  resetDemoData(): void {
-    this.products = [];
-    this.orders = [];
-    this.emit();
-  }
 }
 
 export const adminStore = new AdminStore();

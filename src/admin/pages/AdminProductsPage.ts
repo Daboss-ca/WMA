@@ -9,6 +9,14 @@ import { fromHTML } from "../utils/dom.js";
 
 type CategoryFilter = "All" | ProductCategory;
 
+function normalizeCategory(category: unknown): ProductCategory {
+  const value = String(category ?? "").trim().toLowerCase();
+  if (value.includes("kiosk")) return "Kiosk";
+  if (value.includes("table")) return "Table";
+  if (value.includes("cabinet")) return "Cabinet";
+  return "Custom";
+}
+
 export function createAdminProductsPage(): AdminPage {
   let query = "";
   let category: CategoryFilter = "All";
@@ -78,7 +86,7 @@ export function createAdminProductsPage(): AdminPage {
 
     const products = all.filter(
       (product) =>
-        (category === "All" || product.category === category) &&
+        (category === "All" || normalizeCategory(product.category) === category) &&
         (!term || `${product.title} ${product.description}`.toLowerCase().includes(term))
     );
 
