@@ -1,6 +1,7 @@
 import { cartManager, type CartItem } from "../../state/cartManager.js";
 import { getCurrentUser } from "../../state/sessionManager.js";
 import { buildApiUrl } from "../../config/api.js";
+import { checkoutSchema, firstValidationMessage } from "../../validation/schemas.js";
 
 const MIN_QUANTITY = 1;
 const MAX_QUANTITY = 20;
@@ -373,6 +374,25 @@ export function createCartPage(): HTMLElement {
       }
 
       const contactNumber = contactInput.value.trim();
+      const shippingAddress = addressInput.value.trim();
+      const selectedPaymentMethod = Array.from(radioInputs).find(r => r.checked)?.value;
+      const selectedCartItems = cartManager.getItems().filter((item) => selectedItems.has(item.id));
+      if (selectedCartItems.some((item) => !Number.isInteger(item.quantity) || item.quantity < MIN_QUANTITY || item.quantity > MAX_QUANTITY)) {
+        showMessage('error', 'Cart quantities must be between 1 and 20. Update the cart and try again.');
+        return;
+      }
+      const checkout = checkoutSchema.safeParse({
+        shipping_address: shippingAddress,
+        contact_number: contactNumber,
+        payment_method: selectedPaymentMethod,
+        selected_items: [...selectedItems],
+      });
+      if (!checkout.success) {
+        showMessage('error', firstValidationMessage(checkout.error));
+        if (checkout.error.issues[0]?.path[0] === 'contact_number') contactInput.focus();
+        else if (checkout.error.issues[0]?.path[0] === 'shipping_address') addressInput.focus();
+        return;
+      }
       if (contactNumber.length < 10) {
         showMessage('error', 'Please provide a valid contact number.');
         contactInput.focus();
@@ -380,17 +400,7 @@ export function createCartPage(): HTMLElement {
         return;
       }
       contactInput.style.borderColor = 'var(--color-border-strong, rgba(212, 163, 115, 0.32))';
-
-      const shippingAddress = addressInput.value.trim();
-      if (!shippingAddress) {
-        showMessage('error', 'Please provide your full shipping address.');
-        addressInput.focus();
-        addressInput.style.borderColor = 'var(--color-danger, #ef4444)';
-        return;
-      }
       addressInput.style.borderColor = 'var(--color-border-strong, rgba(212, 163, 115, 0.32))'; 
-
-      const selectedPaymentMethod = Array.from(radioInputs).find(r => r.checked)?.value || 'gcash';
 
       checkoutButton.disabled = true;
       checkoutButton.textContent = 'Processing order...';
@@ -402,11 +412,8 @@ export function createCartPage(): HTMLElement {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            ...checkout.data,
             user_id: user.id,
-            shipping_address: shippingAddress,
-            contact_number: contactNumber,
-            payment_method: selectedPaymentMethod,
-            selected_items: Array.from(selectedItems)
           }),
         });
 

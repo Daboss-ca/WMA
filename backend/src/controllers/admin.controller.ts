@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Request, Response } from 'express';
 import { getSupabaseClient } from '../config/supabaseClient.js';
+import { firstValidationMessage, productSchema } from '../validation/schemas.js';
 
 const ORDER_STATUS_MAP: Record<string, string> = {
   pending_payment: 'Pending',
@@ -422,12 +423,12 @@ export const createAdminProduct = async (req: Request, res: Response): Promise<v
   try {
     const supabase = getSupabaseClient();
     const rawBody = req.body ?? {};
-    const payload = normalizeProductInput(rawBody);
-
-    if (!payload.title || payload.price <= 0) {
-      res.status(400).json({ error: 'Product title and price are required.' });
+    const parsed = productSchema.safeParse({ ...rawBody, image_url: rawBody.image_url ?? rawBody.imageUrl ?? '' });
+    if (!parsed.success) {
+      res.status(400).json({ error: firstValidationMessage(parsed.error) });
       return;
     }
+    const payload = normalizeProductInput({ ...rawBody, ...parsed.data });
 
     const resolvedImageUrl = await resolveProductImageUrl(supabase, rawBody, req.file as any);
     if (resolvedImageUrl) {
@@ -444,6 +445,10 @@ export const createAdminProduct = async (req: Request, res: Response): Promise<v
     res.status(201).json(normalizeProductRecord(data));
   } catch (error: any) {
     console.error('Admin create product error:', error);
+    if (error instanceof Error && error.message.startsWith('Failed to upload product image')) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
     res.status(500).json({ error: 'Failed to create product.', details: error.message });
   }
 };
@@ -453,7 +458,12 @@ export const updateAdminProduct = async (req: Request, res: Response): Promise<v
     const supabase = getSupabaseClient();
     const { id } = req.params;
     const rawBody = req.body ?? {};
-    const payload = normalizeProductUpdateInput(rawBody);
+    const parsed = productSchema.safeParse({ ...rawBody, image_url: rawBody.image_url ?? rawBody.imageUrl ?? '' });
+    if (!parsed.success) {
+      res.status(400).json({ error: firstValidationMessage(parsed.error) });
+      return;
+    }
+    const payload = normalizeProductUpdateInput({ ...rawBody, ...parsed.data });
 
     if (!id) {
       res.status(400).json({ error: 'Product id is required.' });
@@ -476,6 +486,10 @@ export const updateAdminProduct = async (req: Request, res: Response): Promise<v
     res.status(200).json(normalizeProductRecord(data));
   } catch (error: any) {
     console.error('Admin update product error:', error);
+    if (error instanceof Error && error.message.startsWith('Failed to upload product image')) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
     res.status(500).json({ error: 'Failed to update product.', details: error.message });
   }
 };

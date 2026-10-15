@@ -1,8 +1,8 @@
-import { validateEmail } from '../../validation/emailValidator.js';
-import { validatePassword, validateConfirmPassword } from '../../validation/passwordValidator.js';
+import { validateConfirmPassword } from '../../validation/passwordValidator.js';
 import { setCurrentUser } from '../../state/sessionManager.js';
 import { uiState } from '../../state/uiStateManager.js';
 import { buildApiUrl } from '../../config/api.js';
+import { firstValidationMessage, signupSchema } from '../../validation/schemas.js';
 
 export function renderSignupForm(): string {
   return `
@@ -79,26 +79,17 @@ export function attachSignupFormEvents(): void {
     const password = passInput.value;
     const confirmPassword = confirmPassInput.value;
 
-    if (!username || !phone) {
-      uiState.showAlert({ type: 'error', text: 'Username and Phone Number are required.' });
-      return;
-    }
-
-    const emailCheck = validateEmail(email);
-    if (!emailCheck.isValid) {
-      uiState.showAlert({ type: 'error', text: emailCheck.message || 'Invalid email format.' });
-      return;
-    }
-
-    const passCheck = validatePassword(password);
-    if (!passCheck.isValid) {
-      uiState.showAlert({ type: 'error', text: passCheck.message || 'Invalid password.' });
-      return;
-    }
-
-    const confirmCheck = validateConfirmPassword(password, confirmPassword);
-    if (!confirmCheck.isValid) {
-      uiState.showAlert({ type: 'error', text: confirmCheck.message || 'Passwords do not match.' });
+    const parsed = signupSchema.safeParse({ username, email, phone, password, confirmPassword });
+    if (!parsed.success) {
+      const message = firstValidationMessage(parsed.error);
+      const field = parsed.error.issues[0]?.path[0];
+      const errorId = field === 'email' ? 'signup-email-error'
+        : field === 'phone' ? 'signup-phone-error'
+          : field === 'confirmPassword' ? 'signup-confirm-password-error'
+            : field === 'password' ? 'signup-password-error' : 'signup-username-error';
+      const errorNode = document.getElementById(errorId);
+      if (errorNode) errorNode.textContent = message;
+      uiState.showAlert({ type: 'error', text: message });
       return;
     }
 

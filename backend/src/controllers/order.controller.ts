@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { getSupabaseClient } from '../config/supabaseClient';
 import { normalizeOrderStatus } from './admin.controller';
+import { checkoutSchema, firstValidationMessage } from '../validation/schemas.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const DEFAULT_ADMIN_UUID = '00000000-0000-0000-0000-000000000001';
@@ -68,11 +69,16 @@ function resolveUserId(rawValue: unknown): string | null {
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
   try {
     const supabase = getSupabaseClient();
-    const { user_id, shipping_address, contact_number, payment_method, selected_items } = req.body;
+    const parsed = checkoutSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: firstValidationMessage(parsed.error) });
+      return;
+    }
+    const { user_id, shipping_address, contact_number, payment_method, selected_items } = parsed.data;
     const safeUserId = resolveUserId(user_id);
 
-    if (!safeUserId || !shipping_address || !selected_items || !Array.isArray(selected_items) || selected_items.length === 0) {
-      res.status(400).json({ error: 'Missing required checkout information or selected items.' });
+    if (!safeUserId || (safeUserId === DEFAULT_ADMIN_UUID && user_id !== 'admin-wma')) {
+      res.status(400).json({ error: 'Your session is invalid. Please sign in again.' });
       return;
     }
 
@@ -87,13 +93,19 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
 
     const { data: orderId, error: checkoutError } = await supabase.rpc('create_checkout_order', {
       p_user_id: safeUserId,
-      p_shipping_address: String(shipping_address).trim(),
-      p_contact_number: String(contact_number ?? '').trim(),
-      p_payment_method: String(payment_method || 'gcash'),
+      p_shipping_address: shipping_address,
+      p_contact_number: contact_number,
+      p_payment_method: payment_method,
       p_cart_item_ids: selectedItemIds,
     });
 
-    if (checkoutError) throw checkoutError;
+    if (checkoutError) {
+      if (checkoutError.code === '22023') {
+        res.status(400).json({ error: checkoutError.message || 'Some selected cart items are no longer valid. Refresh your cart and try again.' });
+        return;
+      }
+      throw checkoutError;
+    }
     if (!orderId) throw new Error('Checkout completed without returning an order id.');
 
     res.status(201).json({

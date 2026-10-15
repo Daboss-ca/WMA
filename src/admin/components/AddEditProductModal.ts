@@ -2,6 +2,7 @@ import { PRODUCT_CATEGORIES, type DimensionUnit, type Product, type ProductCateg
 import { escapeHtml } from "../utils/dom.js";
 import { readFileAsDataUrl } from "../utils/format.js";
 import { openModal } from "./Modal.js";
+import { productSchema } from "../../client/validation/schemas.js";
 
 const MAX_IMAGE_BYTES = 1.5 * 1024 * 1024;
 const FORM_ID = "admin-product-form";
@@ -17,16 +18,6 @@ export interface ProductModalOptions {
   /** Throw to keep the modal open and show the message inline. */
   onSubmit: (input: ProductInput) => void;
 }
-
-const isAllowedImage = (value: string): boolean => {
-  if (value.startsWith("data:image/")) return true;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:";
-  } catch {
-    return false;
-  }
-};
 
 export function openProductModal({ product, onSubmit }: ProductModalOptions): void {
   const isEdit = Boolean(product);
@@ -209,20 +200,21 @@ export function openProductModal({ product, onSubmit }: ProductModalOptions): vo
       unit: getValue("unit") as DimensionUnit,
     };
 
-    if (title.length < 3) errors.title = "Title needs at least 3 characters.";
-    if (description.length < 10) errors.description = "Add a short description (10+ characters).";
-    if (!PRODUCT_CATEGORIES.includes(category)) errors.category = "Choose an item type.";
-    if (!(Number.isFinite(price) && price > 0)) errors.price = "Enter a price greater than 0.";
-    if (![dimensions.width, dimensions.height, dimensions.depth].every((n) => Number.isFinite(n) && n > 0)) {
-      errors.dimensions = "Width, height and depth are required and must be greater than 0.";
+    const parsed = productSchema.safeParse({ title, description, category, price, dimensions, imageUrl });
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] === "imageUrl" ? "image" : issue.path[0] as FieldKey;
+        if (FIELD_KEYS.includes(key) && !errors[key]) errors[key] = issue.message;
+      }
+      if (!errors.dimensions && parsed.error.issues.some((issue) => issue.path[0] === "dimensions")) {
+        errors.dimensions = "Width, height and depth are required and must be greater than 0.";
+      }
+      return { errors };
     }
-    if (imageUrl && !isAllowedImage(imageUrl)) errors.image = "Use an http(s) link or an uploaded image.";
-
-    if (Object.keys(errors).length > 0) return { errors };
 
     return {
       errors,
-      input: { title, description, category, price, dimensions, imageUrl },
+      input: parsed.data,
     };
   };
 

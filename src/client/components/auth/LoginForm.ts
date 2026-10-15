@@ -1,7 +1,7 @@
-import { validatePassword } from '../../validation/passwordValidator.js';
 import { ADMIN_PASSWORD, ADMIN_USERNAME, setAdminSession, setCurrentUser } from '../../state/sessionManager.js';
 import { uiState } from '../../state/uiStateManager.js';
 import { buildApiUrl } from '../../config/api.js';
+import { firstValidationMessage, loginSchema } from '../../validation/schemas.js';
 
 export function renderLoginForm(): string {
   return `
@@ -48,19 +48,14 @@ export function attachLoginFormEvents(): void {
     const usernameVal = usernameInput.value.trim();
     const passVal = passwordInput.value;
 
-    if (!usernameVal) {
-      uiState.showAlert({ type: 'error', text: 'Username is required.' });
+    const parsed = loginSchema.safeParse({ username: usernameVal, password: passVal });
+    if (!parsed.success) {
+      uiState.showAlert({ type: 'error', text: firstValidationMessage(parsed.error) });
       return;
     }
 
     const normalizedUsername = usernameVal.toLowerCase();
     const isAdminCredentials = (normalizedUsername === ADMIN_USERNAME || normalizedUsername === 'wma@example.com') && passVal === ADMIN_PASSWORD;
-
-    const passCheck = validatePassword(passVal);
-    if (!passCheck.isValid && !isAdminCredentials) {
-      uiState.showAlert({ type: 'error', text: passCheck.message || 'Invalid password.' });
-      return;
-    }
 
     // Set Loading state (spinner)
     uiState.setLoading('login-submit-btn', true, 'Sign In');

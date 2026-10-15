@@ -1,18 +1,13 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service.js';
+import { firstValidationMessage, loginSchema, registerSchema } from '../validation/schemas.js';
 
 export class AuthController {
   static async register(req: Request, res: Response) {
     try {
-      const { username, email, phone, password, confirmPassword } = req.body;
-
-      if (!username || !email || !phone || !password || !confirmPassword) {
-        return res.status(400).json({ error: 'All fields are required (username, email, phone, password, confirmPassword).' });
-      }
-
-      if (password !== confirmPassword) {
-        return res.status(400).json({ error: 'Passwords do not match.' });
-      }
+      const parsed = registerSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: firstValidationMessage(parsed.error) });
+      const { username, email, phone, password } = parsed.data;
 
       const result = await AuthService.register(username, email, phone, password);
 
@@ -44,11 +39,9 @@ export class AuthController {
 
   static async login(req: Request, res: Response) {
     try {
-      const { username, password } = req.body;
-
-      if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password are required.' });
-      }
+      const parsed = loginSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: firstValidationMessage(parsed.error) });
+      const { username, password } = parsed.data;
 
       const result = await AuthService.loginWithUsername(username, password);
       

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { getSupabaseClient } from '../config/supabaseClient';
+import { cartSyncSchema, firstValidationMessage } from '../validation/schemas.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const DEFAULT_ADMIN_UUID = '00000000-0000-0000-0000-000000000001';
@@ -34,11 +35,16 @@ export const mapCartItem = (item: any) => {
 export const addToCart = async (req: Request, res: Response): Promise<void> => {
   try {
     const supabase = getSupabaseClient();
-    const { userId, productId, name, category, dimensions, unitPrice, imageUrl, quantity } = req.body;
+    const parsed = cartSyncSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: firstValidationMessage(parsed.error) });
+      return;
+    }
+    const { userId, productId, name, category, dimensions, unitPrice, imageUrl, quantity } = parsed.data;
     const safeUserId = resolveUserId(userId);
 
-    if (!safeUserId || !productId) {
-      res.status(400).json({ error: 'Missing userId or productId.' });
+    if (!safeUserId || (safeUserId === DEFAULT_ADMIN_UUID && userId !== 'admin-wma')) {
+      res.status(400).json({ error: 'Your session is invalid. Please sign in again.' });
       return;
     }
 
