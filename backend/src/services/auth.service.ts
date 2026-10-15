@@ -34,10 +34,8 @@ export class AuthService {
     return data;
   }
 
-  // Serbisyo para sa pag-login gamit ang username at password
   static async loginWithUsername(username: string, password: string) {
     const supabase = getSupabaseClient();
-    // 1. Hanapin muna sa profiles table ang email na naka-link sa ibinigay na username
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('email')
@@ -45,12 +43,11 @@ export class AuthService {
       .single();
 
     if (profileError || !profileData) {
-      throw new Error('Hindi mahanap ang username na ito.');
+      throw new Error('The username could not be found.');
     }
 
     const email = profileData.email;
 
-    // 2. I-authenticate sa Supabase Auth gamit ang nahanap na email at password
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,

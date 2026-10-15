@@ -55,6 +55,32 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/orders', orderRoutes);
 
+app.use((_req, res) => {
+  res.status(404).json({ error: 'The requested endpoint was not found.' });
+});
+
+app.use((error: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (error?.code === 'LIMIT_FILE_SIZE') {
+    res.status(400).json({ error: 'Image must be 1.5 MB or smaller.' });
+    return;
+  }
+  if (error?.message === 'Only image files are allowed.') {
+    res.status(400).json({ error: 'Upload a valid image file.' });
+    return;
+  }
+  if (error instanceof SyntaxError && 'status' in error && error.status === 400) {
+    res.status(400).json({ error: 'The request body contains invalid JSON.' });
+    return;
+  }
+  if (error?.message?.startsWith('CORS blocked for origin:')) {
+    res.status(403).json({ error: 'This request is not permitted from this origin.' });
+    return;
+  }
+
+  console.error('Unhandled API error:', error);
+  res.status(500).json({ error: 'An unexpected error occurred. Please try again later.' });
+});
+
 const PORT = Number(process.env.PORT) || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on http://0.0.0.0:${PORT}`);

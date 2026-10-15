@@ -6,17 +6,17 @@ export function validatePassword(password: string): ValidationResult {
   }
 
   if (password.length < 8) {
-    return { isValid: false, message: 'Password must be at least 8 characters long.' };
+    return { isValid: false, message: 'Password must contain at least 8 characters.' };
   }
 
   const hasNumber = /\d/.test(password);
   if (!hasNumber) {
-    return { isValid: false, message: 'Must contain at least one number (0-9).' };
+    return { isValid: false, message: 'Password must contain at least one number.' };
   }
 
   const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/;
   if (!hasSpecialChar.test(password)) {
-    return { isValid: false, message: 'Must contain at least one special character (e.g. !@#$).' };
+    return { isValid: false, message: 'Password must contain at least one special character (for example, !@#$).' };
   }
 
   return { isValid: true };

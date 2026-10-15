@@ -364,7 +364,7 @@ export function createCartPage(): HTMLElement {
       const user = getCurrentUser();
       
       if (!user) {
-        showMessage('error', 'Please log in first to proceed with checkout.');
+        showMessage('error', 'Sign in to proceed with checkout.');
         return;
       }
 
@@ -420,20 +420,20 @@ export function createCartPage(): HTMLElement {
         const result = await response.json();
 
         if (response.ok) {
-          showMessage('success', 'Order placed successfully!');
+          showMessage('success', 'Your order has been placed successfully.');
           document.dispatchEvent(new CustomEvent('wma:order-created'));
           document.dispatchEvent(new CustomEvent('wma:cart-updated'));
           await cartManager.fetchCart();
           await render();
         } else {
-          showMessage('error', result.error || 'Checkout failed. Please try again.');
+          showMessage('error', result.error || 'We could not complete checkout. Please try again.');
           checkoutButton.disabled = false;
           checkoutButton.textContent = 'Proceed to Checkout';
           checkoutButton.style.opacity = '1';
         }
       } catch (error) {
         console.error('Checkout Error:', error);
-        showMessage('error', 'Network error. Please check your connection.');
+        showMessage('error', 'We could not reach the server. Check your connection and try again.');
         checkoutButton.disabled = false;
         checkoutButton.textContent = 'Proceed to Checkout';
         checkoutButton.style.opacity = '1';

@@ -22,18 +22,19 @@ export class AuthController {
 
       if (!result.session) {
         return res.status(200).json({ 
-          message: 'Registration successful! Please check your email to verify your account.', 
+          message: 'Registration completed. Please check your email to verify your account.',
           needsVerification: true 
         });
       }
 
       return res.status(201).json({
-        message: 'Registration successful!',
+        message: 'Registration completed successfully.',
         user: userObj,
         session: result.session,
       });
     } catch (error: any) {
-      return res.status(400).json({ error: error.message || 'An error occurred during registration.' });
+      console.error('Registration error:', error);
+      return res.status(400).json({ error: 'Registration could not be completed. Please review your information and try again.' });
     }
   }
 
@@ -55,12 +56,13 @@ export class AuthController {
       } : null;
 
       return res.status(200).json({
-        message: 'Login successful!',
+        message: 'Sign-in completed successfully.',
         user: userObj,
         session: result.session,
       });
     } catch (error: any) {
-      return res.status(400).json({ error: error.message || 'Invalid username or password.' });
+      console.error('Sign-in error:', error);
+      return res.status(400).json({ error: 'Invalid username or password.' });
     }
   }
 }

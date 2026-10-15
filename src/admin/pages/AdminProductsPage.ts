@@ -48,7 +48,7 @@ export function createAdminProductsPage(): AdminPage {
     openProductModal({
       onSubmit: (input) => {
         adminStore.createProduct(input);
-        showToast(`“${input.title}” published`, "success");
+        showToast(`“${input.title}” was published successfully.`, "success");
       },
     });
   };
@@ -58,7 +58,7 @@ export function createAdminProductsPage(): AdminPage {
       product,
       onSubmit: (input) => {
         adminStore.updateProduct(product.id, input);
-        showToast(`“${input.title}” updated`, "success");
+        showToast(`“${input.title}” was updated successfully.`, "success");
       },
     });
   };
@@ -69,7 +69,7 @@ export function createAdminProductsPage(): AdminPage {
       description: "This item will disappear from the storefront catalog. Existing orders keep their saved details.",
       onConfirm: () => {
         adminStore.deleteProduct(product.id);
-        showToast("Item deleted", "info");
+        showToast("Product deleted successfully.", "info");
       },
     });
   };

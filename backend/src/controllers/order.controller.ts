@@ -109,12 +109,12 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
     if (!orderId) throw new Error('Checkout completed without returning an order id.');
 
     res.status(201).json({
-      message: 'Checkout completed successfully!',
+      message: 'Your order has been placed successfully.',
       order_id: String(orderId),
     });
   } catch (error: any) {
     console.error('Checkout Error:', error);
-    res.status(500).json({ error: 'Failed to process order.', details: error.message });
+    res.status(500).json({ error: 'We could not process your order. Please try again later.' });
   }
 };
 
@@ -125,7 +125,7 @@ export const getUserOrders = async (req: Request, res: Response): Promise<void> 
     const safeUserId = resolveUserId(rawUserId);
 
     if (!safeUserId) {
-      res.status(400).json({ error: 'Missing user_id query parameter.' });
+      res.status(400).json({ error: 'A user ID is required to retrieve orders.' });
       return;
     }
 
@@ -153,7 +153,7 @@ export const getUserOrders = async (req: Request, res: Response): Promise<void> 
     res.status(200).json(Array.isArray(data) ? data : []);
   } catch (error: any) {
     console.error('Fetch Orders Error:', error);
-    res.status(500).json({ error: 'Failed to fetch orders.', details: error.message });
+    res.status(500).json({ error: 'We could not retrieve your orders. Please try again later.' });
   }
 };
 
@@ -164,7 +164,7 @@ export const uploadPaymentProof = async (req: Request, res: Response): Promise<v
     const safeUserId = resolveUserId(user_id);
 
     if (!order_id || !safeUserId || !proof_url || !reference_number) {
-      res.status(400).json({ error: 'Please provide all required payment details (Order ID, Proof URL, and Reference Number).' });
+      res.status(400).json({ error: 'Provide the order ID, proof URL, and reference number.' });
       return;
     }
 
@@ -177,7 +177,7 @@ export const uploadPaymentProof = async (req: Request, res: Response): Promise<v
     if (refCheckError) throw refCheckError;
 
     if (existingRef) {
-      res.status(400).json({ error: 'This Reference Number has already been used for another transaction. Please enter a valid unique reference number.' });
+      res.status(400).json({ error: 'This reference number has already been used. Enter a unique reference number.' });
       return;
     }
 
@@ -203,11 +203,11 @@ export const uploadPaymentProof = async (req: Request, res: Response): Promise<v
     if (orderUpdateError) throw orderUpdateError;
 
     res.status(201).json({
-      message: 'Payment proof uploaded successfully! Awaiting admin review.',
+      message: 'Payment proof submitted successfully. It is awaiting review.',
     });
   } catch (error: any) {
     console.error('Payment Upload Error:', error);
-    res.status(500).json({ error: 'Failed to upload payment proof.', details: error.message });
+    res.status(500).json({ error: 'We could not submit your payment proof. Please try again later.' });
   }
 };
 
@@ -271,6 +271,6 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
     });
   } catch (error: any) {
     console.error('Update Order Status Error:', error);
-    res.status(500).json({ error: 'Failed to update order status.', details: error.message });
+    res.status(500).json({ error: 'We could not update the order status. Please try again later.' });
   }
 };

@@ -45,11 +45,11 @@ export const createInquiry = async (req: Request, res: Response): Promise<void> 
     if (error) throw error;
 
     res.status(201).json({
-      message: 'Inquiry submitted successfully!',
+      message: 'Your inquiry has been submitted successfully.',
       data,
     });
   } catch (error: any) {
     console.error('Inquiry Error:', error);
-    res.status(500).json({ error: 'Failed to submit inquiry.', details: error.message });
+    res.status(500).json({ error: 'We could not submit your inquiry. Please try again later.' });
   }
 };

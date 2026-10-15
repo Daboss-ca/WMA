@@ -446,10 +446,10 @@ export const createAdminProduct = async (req: Request, res: Response): Promise<v
   } catch (error: any) {
     console.error('Admin create product error:', error);
     if (error instanceof Error && error.message.startsWith('Failed to upload product image')) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ error: 'The product image could not be uploaded. Please check the file and try again.' });
       return;
     }
-    res.status(500).json({ error: 'Failed to create product.', details: error.message });
+    res.status(500).json({ error: 'We could not create the product. Please try again later.' });
   }
 };
 
@@ -487,10 +487,10 @@ export const updateAdminProduct = async (req: Request, res: Response): Promise<v
   } catch (error: any) {
     console.error('Admin update product error:', error);
     if (error instanceof Error && error.message.startsWith('Failed to upload product image')) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ error: 'The product image could not be uploaded. Please check the file and try again.' });
       return;
     }
-    res.status(500).json({ error: 'Failed to update product.', details: error.message });
+    res.status(500).json({ error: 'We could not update the product. Please try again later.' });
   }
 };
 
@@ -537,7 +537,7 @@ export const deleteAdminProduct = async (req: Request, res: Response): Promise<v
     res.status(200).json({ success: true, id });
   } catch (error: any) {
     console.error('Admin delete product error:', error);
-    res.status(500).json({ error: 'Failed to delete product.', details: error.message });
+    res.status(500).json({ error: 'We could not delete the product. Please try again later.' });
   }
 };
 
@@ -655,7 +655,7 @@ export const getAdminOrder = async (req: Request, res: Response): Promise<void> 
     res.status(200).json(normalizeOrderRecord({ ...order, profiles: profile }));
   } catch (error: any) {
     console.error('Admin get order error:', error);
-    res.status(500).json({ error: 'Failed to fetch order.', details: error.message });
+    res.status(500).json({ error: 'We could not retrieve the order. Please try again later.' });
   }
 };
 
@@ -712,6 +712,6 @@ export const updateAdminOrderStatus = async (req: Request, res: Response): Promi
     res.status(200).json(normalizeOrderRecord(data));
   } catch (error: any) {
     console.error('Admin update order status error:', error);
-    res.status(500).json({ error: 'Failed to update order status.', details: error.message });
+    res.status(500).json({ error: 'We could not update the order status. Please try again later.' });
   }
 };

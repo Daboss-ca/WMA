@@ -65,7 +65,7 @@ export function attachLoginFormEvents(): void {
         setAdminSession();
 
         uiState.setLoading('login-submit-btn', false, 'Sign In');
-        uiState.showAlert({ type: 'success', text: 'Admin login successful. Redirecting...' });
+        uiState.showAlert({ type: 'success', text: 'Administrator sign-in successful. Redirecting...' });
 
         window.location.hash = '#/admin/overview';
 
@@ -96,7 +96,7 @@ export function attachLoginFormEvents(): void {
       setCurrentUser(data.user, rememberMe);
 
       uiState.setLoading('login-submit-btn', false, 'Sign In');
-      uiState.showAlert({ type: 'success', text: 'Welcome back! Logging in...' });
+      uiState.showAlert({ type: 'success', text: 'Welcome back. Signing you in...' });
 
       setTimeout(() => {
         uiState.closeModal();
@@ -104,7 +104,7 @@ export function attachLoginFormEvents(): void {
       
     } catch (error) {
       uiState.setLoading('login-submit-btn', false, 'Sign In');
-      uiState.showAlert({ type: 'error', text: 'Network error. Please try again later.' });
+      uiState.showAlert({ type: 'error', text: 'We could not reach the server. Check your connection and try again.' });
     }
   });
 }

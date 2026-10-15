@@ -543,7 +543,7 @@ export function createCatalogProductFeed(
 
         const originalText = addToCartBtn.textContent;
 
-        addToCartBtn.textContent = "Added!";
+        addToCartBtn.textContent = "Added to cart";
         addToCartBtn.style.backgroundColor =
           "var(--success-color, #4CAF50)";
         addToCartBtn.style.color = "#fff";
@@ -1257,7 +1257,7 @@ export function createCatalog(
         const originalText =
           addToCartBtn.textContent;
 
-        addToCartBtn.textContent = "Added!";
+        addToCartBtn.textContent = "Added to cart";
 
         addToCartBtn.style.backgroundColor =
           "var(--success-color, #4CAF50)";

@@ -128,10 +128,10 @@ export function createInquiryModal(): HTMLElement {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit inquiry.');
+        throw new Error(data.error || 'We could not submit your inquiry. Please try again later.');
       }
 
-      status.textContent = `Thanks, ${user.fullName}. Your inquiry has been received.`;
+      status.textContent = `Thank you, ${user.fullName}. Your inquiry has been received.`;
 
       window.setTimeout(() => {
         uiState.closeInquiryModal();

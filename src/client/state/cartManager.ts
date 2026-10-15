@@ -134,7 +134,7 @@ function mergeCartItems(baseItems: CartItem[], additionalItems: CartItem[], addQ
 async function fetchServerCart(userId: string): Promise<CartItem[]> {
   const response = await fetch(buildApiUrl(`/cart/${userId}`));
   const data = await response.json();
-  if (!response.ok) throw new Error(data?.error || 'Failed to fetch cart.');
+  if (!response.ok) throw new Error(data?.error || 'We could not retrieve the cart. Please try again later.');
 
   return (Array.isArray(data?.items) ? data.items : [])
     .map((item: any) => mergeFetchedCartItem(item))
@@ -157,7 +157,7 @@ async function writeCartItemToServer(userId: string, item: CartItem): Promise<vo
     }),
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data?.error || 'Failed to sync cart item.');
+  if (!response.ok) throw new Error(data?.error || 'We could not sync the cart item. Please try again later.');
 }
 
 async function syncAuthenticatedCart(userId: string): Promise<void> {
@@ -374,7 +374,7 @@ export const cartManager = {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.error || 'Failed to add item to cart.');
+        throw new Error(data?.error || 'We could not add the item to your cart. Please try again later.');
       }
 
       await cartManager.fetchCart();
@@ -420,7 +420,7 @@ export const cartManager = {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || 'Failed to update cart quantity.');
+      if (!response.ok) throw new Error(data?.error || 'We could not update the cart quantity. Please try again later.');
 
       await cartManager.fetchCart();
     } catch (error) {
@@ -441,7 +441,7 @@ export const cartManager = {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || 'Failed to remove item from cart.');
+      if (!response.ok) throw new Error(data?.error || 'We could not remove the cart item. Please try again later.');
 
       await cartManager.fetchCart();
     } catch (error) {

@@ -84,14 +84,14 @@ export const addToCart = async (req: Request, res: Response): Promise<void> => {
 
     if (cartError) {
       console.warn('Cart upsert fallback triggered:', cartError.message);
-      res.status(500).json({ error: 'Failed to update cart item.' });
+      res.status(500).json({ error: 'We could not update the cart. Please try again later.' });
       return;
     }
 
-    res.status(200).json({ message: 'Cart updated successfully!', data });
+    res.status(200).json({ message: 'Cart updated successfully.', data });
   } catch (error: any) {
     console.error('Add to Cart Error:', error);
-    res.status(500).json({ error: 'Failed to update cart item.' });
+    res.status(500).json({ error: 'We could not update the cart. Please try again later.' });
   }
 };
 
@@ -103,7 +103,7 @@ export const getCart = async (req: Request, res: Response): Promise<void> => {
     const safeUserId = resolveUserId(userId);
 
     if (!safeUserId) {
-      res.status(400).json({ error: 'Missing userId parameter.' });
+      res.status(400).json({ error: 'A user ID is required to retrieve the cart.' });
       return;
     }
 
@@ -115,7 +115,7 @@ export const getCart = async (req: Request, res: Response): Promise<void> => {
 
     if (error) {
       console.warn('Cart fetch fallback triggered:', error.message);
-      res.status(500).json({ error: 'Failed to fetch cart.' });
+      res.status(500).json({ error: 'We could not retrieve the cart. Please try again later.' });
       return;
     }
 
@@ -144,7 +144,7 @@ export const getCart = async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({ items: formattedItems });
   } catch (error: any) {
     console.error('Fetch Cart Error:', error);
-    res.status(500).json({ error: 'Failed to fetch cart.' });
+    res.status(500).json({ error: 'We could not retrieve the cart. Please try again later.' });
   }
 };
 
@@ -155,7 +155,7 @@ export const removeFromCart = async (req: Request, res: Response): Promise<void>
     const { id } = req.params;
 
     if (!id) {
-      res.status(400).json({ error: 'Missing cart item ID.' });
+      res.status(400).json({ error: 'A cart item ID is required.' });
       return;
     }
 
@@ -166,9 +166,9 @@ export const removeFromCart = async (req: Request, res: Response): Promise<void>
 
     if (error) throw error;
 
-    res.status(200).json({ message: 'Item removed from cart successfully!' });
+    res.status(200).json({ message: 'Cart item removed successfully.' });
   } catch (error: any) {
     console.error('Remove Cart Item Error:', error);
-    res.status(500).json({ error: 'Failed to remove cart item.', details: error.message });
+    res.status(500).json({ error: 'We could not remove the cart item. Please try again later.' });
   }
 };

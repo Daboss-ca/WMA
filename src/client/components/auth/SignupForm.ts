@@ -114,7 +114,7 @@ export function attachSignupFormEvents(): void {
 
       if (!response.ok) {
         uiState.setLoading('signup-submit-btn', false, 'Create Account');
-        uiState.showAlert({ type: 'error', text: data.error || 'Registration failed.' });
+        uiState.showAlert({ type: 'error', text: data.error || 'We could not complete registration. Please try again.' });
         return;
       }
 
@@ -124,7 +124,7 @@ export function attachSignupFormEvents(): void {
       if (data.needsVerification) {
         uiState.setLoading('signup-submit-btn', false, 'Create Account');
         // Show success alert instructing them to check their email
-        uiState.showAlert({ type: 'success', text: 'Account created! Please check your email to verify your account.' });
+      uiState.showAlert({ type: 'success', text: 'Your account has been created. Check your email to verify it.' });
         
         // Optionally switch to the login tab so they can log in after verifying
         setTimeout(() => {
@@ -137,7 +137,7 @@ export function attachSignupFormEvents(): void {
         // If email confirmation is off, proceed to auto-login
         setCurrentUser(data.user, true);
         uiState.setLoading('signup-submit-btn', false, 'Create Account');
-        uiState.showAlert({ type: 'success', text: 'Account created! Logging in...' });
+        uiState.showAlert({ type: 'success', text: 'Your account has been created. Signing you in...' });
 
         setTimeout(() => {
           uiState.closeModal();
@@ -146,7 +146,7 @@ export function attachSignupFormEvents(): void {
       
     } catch (error) {
       uiState.setLoading('signup-submit-btn', false, 'Create Account');
-      uiState.showAlert({ type: 'error', text: 'Network error. Please try again later.' });
+      uiState.showAlert({ type: 'error', text: 'We could not reach the server. Check your connection and try again.' });
     }
   });
 }

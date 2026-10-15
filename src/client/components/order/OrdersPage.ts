@@ -361,14 +361,14 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
       }
 
       if (!/^\d{13}$/.test(refValue)) {
-        message.textContent = "Reference Number must be exactly 13 digits.";
+        message.textContent = "The reference number must contain exactly 13 digits.";
         message.classList.add("is-error");
         referenceInput.focus();
         return;
       }
 
       if (!selectedFile) {
-        message.textContent = "Please upload a proof of payment image.";
+        message.textContent = "Upload an image of your payment proof.";
         message.classList.add("is-error");
         return;
       }
@@ -398,18 +398,18 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
         const result = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-          throw new Error(result?.error || "Unable to submit proof of payment.");
+          throw new Error(result?.error || "We could not submit your payment proof. Please try again later.");
         }
 
         message.textContent = "Payment proof submitted successfully.";
         message.classList.add("is-success");
-        showToast("Payment proof submitted and is pending review.", "success");
+        showToast("Payment proof submitted successfully. It is awaiting review.", "success");
 
         setTimeout(() => {
           closePaymentProofModal();
         }, 300);
       } catch (error) {
-        const messageText = error instanceof Error ? error.message : "Something went wrong while submitting proof.";
+        const messageText = error instanceof Error ? error.message : "We could not submit your payment proof. Please try again later.";
         message.textContent = messageText;
         message.classList.add("is-error");
         showToast(messageText, "error");
@@ -468,14 +468,14 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(payload?.error || "Unable to confirm receipt.");
+      throw new Error(payload?.error || "We could not confirm receipt. Please try again later.");
       }
 
       await fetchUserOrders(activeUser.id, true);
-      showToast("Order marked as completed.", "success");
+      showToast("Order marked as completed successfully.", "success");
     } catch (error) {
       console.error("Unable to confirm received order:", error);
-      showToast(error instanceof Error ? error.message : "Unable to confirm receipt.", "error");
+      showToast(error instanceof Error ? error.message : "We could not confirm receipt. Please try again later.", "error");
     }
   };
 
@@ -518,7 +518,7 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
       }
 
       if (!response.ok) {
-        throw new Error(data?.error || "Unable to load orders.");
+        throw new Error(data?.error || "We could not retrieve your orders. Please try again later.");
       }
 
       const fetchedOrders: OrderItem[] = Array.isArray(data)

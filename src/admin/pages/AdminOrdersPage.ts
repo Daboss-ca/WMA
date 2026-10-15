@@ -42,7 +42,7 @@ export function createAdminOrdersPage(): AdminPage {
     render();
     try {
       await adminStore.updateOrderStatus(order.id, next);
-      showToast(`${order.reference} → ${ORDER_STATUS_META[next].label}`, "success");
+      showToast(`Order ${order.reference} status updated to ${ORDER_STATUS_META[next].label}.`, "success");
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Could not update this order.", "error");
     } finally {

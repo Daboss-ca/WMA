@@ -234,7 +234,7 @@ export function openProductModal({ product, onSubmit }: ProductModalOptions): vo
       onSubmit(input);
       modal.close();
     } catch (error) {
-      formError.textContent = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+      formError.textContent = error instanceof Error ? error.message : "An unexpected error occurred. Please try again.";
       formError.hidden = false;
     }
   });
