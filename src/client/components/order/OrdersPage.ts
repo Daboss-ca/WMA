@@ -6,6 +6,7 @@ import { renderToPayTab } from "./ToPayTab.js";
 import { renderToShipTab } from "./ToShipTab.js";
 import { renderToReceiveTab } from "./ToReceiveTab.js";
 import { renderToReviewTab } from "./ToReviewTab.js";
+import { firstValidationMessage, reviewSchema } from "../../validation/schemas.js";
 
 export type OrderStatusTab = "all" | "pay" | "ship" | "receive" | "review";
 
@@ -17,6 +18,7 @@ export interface OrderLineItem {
   quantity: number;
   imageUrl?: string;
   dimensions: string;
+  reviewed?: boolean;
 }
 
 export interface OrderItem {
@@ -75,13 +77,13 @@ export function renderOrderCard(order: OrderItem): string {
     let actionButtonLabel = "View details";
     if (order.status === "ship") actionButtonLabel = "Track crafting";
     else if (order.status === "receive") actionButtonLabel = "Confirm received";
-    else if (order.status === "review") actionButtonLabel = "Write review";
+    else if (order.status === "review") actionButtonLabel = "";
 
-    footerContent = `
+    footerContent = actionButtonLabel ? `
       <button type="button" class="btn btn--secondary btn--sm" data-order-action="${order.status}">
         ${actionButtonLabel}
       </button>
-    `;
+    ` : "";
   }
 
   const itemRows = (order.items.length ? order.items : [{
@@ -111,6 +113,11 @@ export function renderOrderCard(order: OrderItem): string {
           <p class="order-card__meta">${escapeHtml(item.dimensions)}</p>
           <p class="order-card__meta"><strong>QTY:</strong> ${escapeHtml(String(item.quantity))}</p>
           <p class="order-card__price">${unitPrice} each</p>
+          ${order.status === "review"
+            ? item.reviewed
+              ? `<span class="review-item-status">Reviewed</span>`
+              : `<button type="button" class="btn btn--secondary btn--sm review-item-button" data-order-action="review" data-product-id="${escapeHtml(item.productId)}">Write a review</button>`
+            : ""}
         </div>
       </div>`;
   }).join("");
@@ -128,11 +135,9 @@ export function renderOrderCard(order: OrderItem): string {
 
       ${itemRows}
 
-      <p class="order-card__price order-card__total">Order total: ${formattedPrice}</p>
+      ${order.status === "review" ? "" : `<p class="order-card__price order-card__total">Order total: ${formattedPrice}</p>`}
 
-      <footer class="order-card__footer">
-        ${footerContent}
-      </footer>
+      ${footerContent ? `<footer class="order-card__footer">${footerContent}</footer>` : ""}
     </article>
   `;
 }
@@ -211,6 +216,8 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
   let orders: OrderItem[] = [];
   let isLoading = true;
   let paymentProofModal: HTMLElement | null = null;
+  let reviewModal: HTMLElement | null = null;
+  let dismissReviewModal: (() => void) | null = null;
   let currentUserId = user.id;
   let latestOrderFetch = 0;
   let realtimeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -233,6 +240,113 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
     (toast as any).__timeoutId = window.setTimeout(() => {
       toast?.classList.remove("is-visible");
     }, 3200);
+  };
+
+  const openReviewModal = (order: OrderItem, item: OrderLineItem) => {
+    dismissReviewModal?.();
+    let rating = 0;
+    const modal = document.createElement("div");
+    modal.className = "review-modal-backdrop";
+    modal.innerHTML = `
+      <section class="review-modal" role="dialog" aria-modal="true" aria-labelledby="write-review-title">
+        <button class="review-modal__close" type="button" aria-label="Close review dialog">×</button>
+        <p class="review-modal__eyebrow">Product review</p>
+        <h2 id="write-review-title">Review ${escapeHtml(item.title)}</h2>
+        <p class="review-modal__hint">Share your experience with this product.</p>
+        <form class="review-form" novalidate>
+          <fieldset class="review-rating">
+            <legend>Your rating</legend>
+            <div class="review-rating__stars" role="group" aria-label="Choose a rating from 1 to 5 stars">
+              ${[1, 2, 3, 4, 5].map((value) => `<button type="button" class="review-star" data-rating="${value}" aria-label="${value} ${value === 1 ? "star" : "stars"}" aria-pressed="false">☆</button>`).join("")}
+            </div>
+          </fieldset>
+          <label class="review-form__label" for="review-comment">Your feedback</label>
+          <textarea id="review-comment" name="comment" rows="5" maxlength="1000" placeholder="What did you like about this product?" required></textarea>
+          <p class="review-form__error" role="alert" aria-live="polite"></p>
+          <button class="btn btn--primary review-form__submit" type="submit">Submit review</button>
+        </form>
+      </section>`;
+    reviewModal = modal;
+    document.body.appendChild(modal);
+
+    const form = modal.querySelector<HTMLFormElement>(".review-form")!;
+    const comment = modal.querySelector<HTMLTextAreaElement>("#review-comment")!;
+    const errorNode = modal.querySelector<HTMLElement>(".review-form__error")!;
+    const submitButton = modal.querySelector<HTMLButtonElement>(".review-form__submit")!;
+    const close = () => {
+      modal.remove();
+      if (reviewModal === modal) reviewModal = null;
+      if (dismissReviewModal === close) dismissReviewModal = null;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+    dismissReviewModal = close;
+    const updateStars = () => modal.querySelectorAll<HTMLButtonElement>("[data-rating]").forEach((star) => {
+      const value = Number(star.dataset.rating);
+      star.textContent = value <= rating ? "★" : "☆";
+      star.setAttribute("aria-pressed", String(value === rating));
+    });
+
+    modal.querySelectorAll<HTMLButtonElement>("[data-rating]").forEach((star) => {
+      star.addEventListener("click", () => {
+        rating = Number(star.dataset.rating);
+        errorNode.textContent = "";
+        updateStars();
+      });
+    });
+    modal.querySelector(".review-modal__close")?.addEventListener("click", close);
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) close();
+    });
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        close();
+        document.removeEventListener("keydown", onKeyDown);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const parsed = reviewSchema.safeParse({
+        product_id: item.productId,
+        order_id: order.id,
+        rating,
+        comment: comment.value,
+      });
+      if (!parsed.success) {
+        errorNode.textContent = firstValidationMessage(parsed.error);
+        return;
+      }
+
+      submitButton.disabled = true;
+      submitButton.textContent = "Submitting review...";
+      errorNode.textContent = "";
+      try {
+        const response = await fetch(buildApiUrl("/reviews"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...parsed.data, user_id: currentUserId }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result?.error || "We could not submit your review. Please try again later.");
+
+        orders = orders.map((currentOrder) => currentOrder.id !== order.id ? currentOrder : {
+          ...currentOrder,
+          items: currentOrder.items.map((currentItem) => currentItem.productId === item.productId
+            ? { ...currentItem, reviewed: true }
+            : currentItem),
+        });
+        close();
+        document.removeEventListener("keydown", onKeyDown);
+        renderContent();
+        showToast("Your review has been submitted successfully.", "success");
+      } catch (error) {
+        errorNode.textContent = error instanceof Error ? error.message : "We could not submit your review. Please try again later.";
+        submitButton.disabled = false;
+        submitButton.textContent = "Submit review";
+      }
+    });
+    modal.querySelector<HTMLButtonElement>(".review-star")?.focus();
   };
 
   const closePaymentProofModal = () => {
@@ -544,6 +658,7 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
                   ? normalizeImagePath(String(product.image_url))
                   : undefined,
                 dimensions: dimensionsText ? `Dimensions: ${dimensionsText}` : "",
+                reviewed: Boolean(orderLine.reviewed),
               };
             });
             const firstItem = lineItems[0];
@@ -680,6 +795,15 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
       });
     });
 
+    page.querySelectorAll<HTMLButtonElement>("[data-order-action='review']").forEach((actionButton) => {
+      const orderId = actionButton.closest(".order-card")?.getAttribute("data-order-id");
+      const productId = actionButton.dataset.productId;
+      const order = orders.find((candidate) => candidate.id === orderId);
+      const item = order?.items.find((candidate) => candidate.productId === productId);
+      if (!order || !item) return;
+      actionButton.addEventListener("click", () => openReviewModal(order, item));
+    });
+
     page.querySelector('[data-action="go-catalog"]')?.addEventListener("click", () => {
       document.dispatchEvent(new CustomEvent("wma:close-orders"));
     });
@@ -740,6 +864,7 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
   });
 
   const destroy = () => {
+    dismissReviewModal?.();
     if (realtimeRefreshTimer) {
       clearTimeout(realtimeRefreshTimer);
       realtimeRefreshTimer = null;

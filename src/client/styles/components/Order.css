@@ -148,12 +148,14 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr));
   gap: var(--space-5);
+  align-items: start;
 }
 
 .order-card {
   --media: clamp(5.5rem, 14vw, 7.5rem);
 
   display: grid;
+  align-self: start;
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--color-border);
@@ -166,6 +168,8 @@
 
 .order-card__header {
   display: flex;
+  min-height: 4.25rem;
+  align-self: start;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
@@ -229,9 +233,14 @@
 
 .order-card__body {
   display: grid;
+  align-items: start;
   grid-template-columns: var(--media) minmax(0, 1fr);
   gap: var(--space-5);
   padding: var(--space-5);
+}
+
+.order-card__item-row + .order-card__item-row {
+  border-top: 1px solid var(--ord-line);
 }
 
 .order-card__media {
@@ -272,6 +281,7 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
+  justify-content: flex-start;
   align-items: flex-start;
   gap: var(--space-1);
 }

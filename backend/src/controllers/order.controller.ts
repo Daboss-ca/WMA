@@ -149,8 +149,21 @@ export const getUserOrders = async (req: Request, res: Response): Promise<void> 
       .order('created_at', { ascending: false });
 
     if (error) throw error;
+    const orders = Array.isArray(data) ? data : [];
+    const { data: reviews, error: reviewsError } = await supabase
+      .from('reviews')
+      .select('order_id, product_id')
+      .eq('user_id', safeUserId);
+    if (reviewsError) throw reviewsError;
 
-    res.status(200).json(Array.isArray(data) ? data : []);
+    const reviewedItems = new Set((reviews ?? []).map((review: any) => `${review.order_id}:${review.product_id}`));
+    res.status(200).json(orders.map((order: any) => ({
+      ...order,
+      order_items: (Array.isArray(order.order_items) ? order.order_items : []).map((item: any) => ({
+        ...item,
+        reviewed: reviewedItems.has(`${order.id}:${item.product_id}`),
+      })),
+    })));
   } catch (error: any) {
     console.error('Fetch Orders Error:', error);
     res.status(500).json({ error: 'We could not retrieve your orders. Please try again later.' });

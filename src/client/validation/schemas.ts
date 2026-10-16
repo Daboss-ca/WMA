@@ -41,6 +41,13 @@ export const productSchema = z.object({
   imageUrl: imageSchema,
 });
 
+export const reviewSchema = z.object({
+  product_id: z.string().trim().min(1, 'A product is required for this review.'),
+  order_id: z.string().trim().min(1, 'An order is required for this review.'),
+  rating: z.number().int('Choose a whole-star rating.').min(1, 'Select a rating from 1 to 5 stars.').max(5, 'Select a rating from 1 to 5 stars.'),
+  comment: z.string().trim().min(3, 'Feedback must contain at least 3 characters.').max(1000, 'Feedback cannot exceed 1,000 characters.'),
+});
+
 export function firstValidationMessage(error: z.ZodError): string {
   return error.issues[0]?.message ?? 'Please check the information and try again.';
 }

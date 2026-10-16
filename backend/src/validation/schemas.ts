@@ -51,6 +51,14 @@ export const cartSyncSchema = z.object({
   quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1.').max(20, 'Quantity cannot exceed 20.'),
 });
 
+export const reviewSchema = z.object({
+  user_id: z.string().uuid('A valid user ID is required.'),
+  product_id: z.string().trim().min(1, 'A product ID is required.').max(100, 'Product ID is too long.'),
+  order_id: z.string().uuid('A valid order ID is required.'),
+  rating: z.coerce.number({ error: 'Select a star rating.' }).int('Rating must be a whole number from 1 to 5.').min(1, 'Rating must be between 1 and 5.').max(5, 'Rating must be between 1 and 5.'),
+  comment: z.string().trim().min(3, 'Feedback must contain at least 3 characters.').max(1000, 'Feedback cannot exceed 1,000 characters.'),
+});
+
 export function firstValidationMessage(error: z.ZodError): string {
   return error.issues[0]?.message ?? 'Please check the information and try again.';
 }

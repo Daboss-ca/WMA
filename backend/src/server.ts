@@ -6,6 +6,7 @@ import cartRoutes from './routes/cart.routes.js';
 import inquiryRoutes from './routes/inquiry.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import productsRoutes from './routes/products.routes.js';
+import reviewRoutes from './routes/review.routes.js';
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'The requested endpoint was not found.' });
