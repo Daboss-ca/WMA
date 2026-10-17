@@ -28,6 +28,18 @@ const image = z.string().trim().refine((value) => {
     return (url.protocol === 'https:' || url.protocol === 'http:') && Boolean(url.hostname);
   } catch { return false; }
 }, 'Use an http(s) image URL or upload an image.');
+// Cart items can come from the guest cart before the frontend has resolved a
+// relative catalog asset to an absolute URL. Keep product uploads strict, but
+// accept root-relative image paths for cart synchronization.
+const cartImage = z.string().trim().refine((value) => {
+  if (!value || value.startsWith('data:image/')) return true;
+  try {
+    const url = new URL(value);
+    return (url.protocol === 'https:' || url.protocol === 'http:') && Boolean(url.hostname);
+  } catch {
+    return value.startsWith('/') && !value.startsWith('//') && !/[\\\s]/.test(value);
+  }
+}, 'Use an http(s) image URL, a root-relative image path, or upload an image.');
 const productFields = {
   title: z.string().trim().min(3, 'Product name must contain at least 3 characters.').max(120, 'Product name cannot exceed 120 characters.'),
   category: z.string().trim().toLowerCase().pipe(z.enum(['kiosk', 'table', 'cabinet', 'custom'], { error: 'Select a valid product category.' })).transform((value) => value[0].toUpperCase() + value.slice(1)),
@@ -47,7 +59,7 @@ export const cartSyncSchema = z.object({
   category: z.string().trim().min(1, 'Product category is required.').max(40, 'Product category cannot exceed 40 characters.').optional(),
   dimensions: z.string().trim().min(1, 'Product dimensions are required.').max(100, 'Product dimensions cannot exceed 100 characters.').optional(),
   unitPrice: z.coerce.number().finite().nonnegative('Price cannot be negative.').max(99_999_999.99, 'Price exceeds the maximum allowed amount.'),
-  imageUrl: image.optional(),
+  imageUrl: cartImage.optional(),
   quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1.').max(20, 'Quantity cannot exceed 20.'),
 });
 

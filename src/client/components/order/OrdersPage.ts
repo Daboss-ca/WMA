@@ -86,7 +86,7 @@ export function renderOrderCard(order: OrderItem): string {
     ` : "";
   }
 
-  const itemRows = (order.items.length ? order.items : [{
+  const items = order.items.length ? order.items : [{
     productId: "",
     title: order.title,
     category: order.category,
@@ -94,7 +94,9 @@ export function renderOrderCard(order: OrderItem): string {
     quantity: 1,
     imageUrl: order.imageUrl,
     dimensions: order.dimensions,
-  }]).map((item) => {
+  }];
+
+  const itemRows = items.map((item) => {
     const unitPrice = new Intl.NumberFormat("en-PH", {
       style: "currency",
       currency: "PHP",
@@ -109,10 +111,9 @@ export function renderOrderCard(order: OrderItem): string {
             : `<div class="order-card__placeholder">${escapeHtml(item.category)}</div>`}
         </div>
         <div class="order-card__info">
-          <h3 class="order-card__title">${escapeHtml(item.title)}</h3>
-          <p class="order-card__meta">${escapeHtml(item.dimensions)}</p>
-          <p class="order-card__meta"><strong>QTY:</strong> ${escapeHtml(String(item.quantity))}</p>
-          <p class="order-card__price">${unitPrice} each</p>
+          <h3 class="order-card__title truncate">${escapeHtml(item.title)}</h3>
+          <p class="order-card__meta">Qty: ${escapeHtml(String(item.quantity))}</p>
+          <p class="order-card__price">${unitPrice}</p>
           ${order.status === "review"
             ? item.reviewed
               ? `<span class="review-item-status">Reviewed</span>`
@@ -122,8 +123,17 @@ export function renderOrderCard(order: OrderItem): string {
       </div>`;
   }).join("");
 
+  const firstItem = items[0];
+  const summaryImage = firstItem.imageUrl
+    ? `<img src="${escapeHtml(firstItem.imageUrl)}" alt="${escapeHtml(firstItem.title)}" />`
+    : `<div class="order-card__placeholder">${escapeHtml(firstItem.category)}</div>`;
+  const itemSummary = items.length > 1
+    ? `<span class="order-card__more-items">+${items.length - 1} more ${items.length === 2 ? "item" : "items"}</span>`
+    : `<span class="order-card__meta">Qty: ${escapeHtml(String(firstItem.quantity))}</span>`;
+  const detailsId = `order-details-${encodeURIComponent(order.id).replace(/%/g, "-")}`;
+
   return `
-    <article class="order-card" data-order-id="${order.id}">
+    <article class="order-card w-full max-w-3xl mx-auto" data-order-id="${order.id}">
       <header class="order-card__header">
         <div>
           <span class="order-card__date">${escapeHtml(order.date)}</span>
@@ -133,9 +143,22 @@ export function renderOrderCard(order: OrderItem): string {
         </span>
       </header>
 
-      ${itemRows}
+      <div class="order-card__summary">
+        <div class="order-card__media">${summaryImage}</div>
+        <div class="order-card__summary-info">
+          <h3 class="order-card__title truncate">${escapeHtml(firstItem.title)}</h3>
+          ${itemSummary}
+          ${items.length === 1 && order.status === "review"
+            ? firstItem.reviewed
+              ? `<span class="review-item-status">Reviewed</span>`
+              : `<button type="button" class="btn btn--secondary btn--sm review-item-button" data-order-action="review" data-product-id="${escapeHtml(firstItem.productId)}">Write a review</button>`
+            : ""}
+        </div>
+        <p class="order-card__price order-card__total">${formattedPrice}</p>
+        ${items.length > 1 ? `<button type="button" class="order-card__toggle" aria-expanded="false" aria-controls="${detailsId}" aria-label="View ${items.length} order items"><span>View details</span><span class="order-card__chevron" aria-hidden="true">⌄</span></button>` : ""}
+      </div>
 
-      ${order.status === "review" ? "" : `<p class="order-card__price order-card__total">Order total: ${formattedPrice}</p>`}
+      ${items.length > 1 ? `<div class="order-card__details" id="${detailsId}" hidden>${itemRows}</div>` : ""}
 
       ${footerContent ? `<footer class="order-card__footer">${footerContent}</footer>` : ""}
     </article>
@@ -760,6 +783,19 @@ export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElemen
         </section>
       </div>
     `;
+
+    page.querySelectorAll<HTMLButtonElement>(".order-card__toggle").forEach((toggle) => {
+      toggle.addEventListener("click", () => {
+        const detailsId = toggle.getAttribute("aria-controls");
+        const details = detailsId ? page.querySelector<HTMLElement>(`#${CSS.escape(detailsId)}`) : null;
+        if (!details) return;
+
+        const expanded = toggle.getAttribute("aria-expanded") === "true";
+        toggle.setAttribute("aria-expanded", String(!expanded));
+        details.hidden = expanded;
+        toggle.querySelector("span")!.textContent = expanded ? "View details" : "Hide details";
+      });
+    });
 
     page.querySelector("#back-to-dashboard-btn")?.addEventListener("click", () => {
       document.dispatchEvent(new CustomEvent("wma:close-orders"));
