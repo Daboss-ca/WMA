@@ -102,7 +102,7 @@ export function getWmaLogoTexture(): THREE.CanvasTexture {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "#161616";
-  ctx.font = "700 132px 'Inter', 'Helvetica Neue', Arial, sans-serif";
+  ctx.font = "700 132px 'Poppins', 'Helvetica Neue', Arial, sans-serif";
   ctx.fillText("WMA", canvas.width / 2, canvas.height / 2 - 4);
 
   ctx.strokeStyle = "#d4af37";

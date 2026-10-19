@@ -1,7 +1,7 @@
 /**
  * WMA Wood Craft — Design Tokens & Dynamic Theme System
  * ------------------------------------------------------
- * Default: Warm, unbleached cream Light Mode.
+ * Default: Clean neutral light mode coordinated with the Admin console.
  * Override: Rich Walnut & Dark Timber Dark Mode via [data-theme="dark"].
  */
 
@@ -11,16 +11,16 @@
   --color-oak: #5c3a21;          /* warm oak — secondary surfaces, headings on cream */
   --color-amber: #d4a373;        /* varnish amber/gold — primary accent, CTAs */
   --color-pine: #a07855;         /* light pine — mid-tone accents, borders */
-  --color-cream: #fefae0;        /* unbleached cream — page background */
-  --color-cream-dim: #f7f0d4;     /* slightly deeper cream for section banding */
+  --color-cream: #f3efe8;        /* Admin light-mode page background */
+  --color-cream-dim: #f8f4ee;     /* Admin light-mode secondary surface */
   --color-ink: #231910;           /* near-black warm ink, body copy on cream */
-  --color-white: #fffdf6;         /* warm white, for card surfaces */
+  --color-white: #fffdf9;         /* Admin light-mode card surface */
 
   /* ---------- Default Theme Mapping: Light Mode ---------- */
   --bg-page: var(--color-cream);
   --bg-page-dim: var(--color-cream-dim);
   --bg-surface: var(--color-white);
-  --bg-header: rgba(254, 250, 224, 0.85);
+  --bg-header: rgba(255, 255, 255, 0.7);
   
   --text-main: var(--color-ink);
   --text-muted: var(--color-oak);
@@ -33,14 +33,14 @@
   --color-success: #5b7a52;       /* muted moss green — "in stock" */
   --color-success-bg: #e7ede2;
 
-  --color-border: rgba(43, 30, 22, 0.12);   /* walnut-tinted hairline border */
-  --color-border-strong: rgba(43, 30, 22, 0.22);
+  --color-border: rgba(55, 41, 32, 0.12);
+  --color-border-strong: rgba(55, 41, 32, 0.18);
   --color-glass-border: rgba(255, 255, 255, 0.4);
   --color-overlay: rgba(43, 30, 22, 0.55);
 
   /* ---------- Typography ---------- */
-  --font-display: "Cinzel", "Iowan Old Style", serif;
-  --font-body: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Poppins", "Segoe UI", system-ui, sans-serif;
 
   --fs-100: 0.8125rem;   /* 13px — meta, captions */
   --fs-200: 0.9375rem;   /* 15px — small body */

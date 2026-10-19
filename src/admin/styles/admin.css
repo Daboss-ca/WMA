@@ -34,8 +34,8 @@
   --adm-sidebar: 248px;
   --adm-sidebar-collapsed: 76px;
   --adm-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-  --adm-font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
-  --adm-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --adm-font-display: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --adm-font: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   min-height: 100vh;
   background: radial-gradient(900px 500px at 85% -10%, rgba(200, 146, 90, 0.07), transparent 60%), var(--adm-bg);
@@ -617,7 +617,7 @@
   display: block;
 }
 .admin-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--adm-font);
   font-size: 13px;
   letter-spacing: 0.02em;
 }

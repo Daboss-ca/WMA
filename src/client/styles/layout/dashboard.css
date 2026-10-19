@@ -12,9 +12,7 @@
   --dash-focus: 2px solid var(--accent-primary);
 
   min-height: 70vh;
-  background:
-    radial-gradient(56rem 26rem at 0% 0%, color-mix(in srgb, var(--accent-soft) 70%, transparent), transparent 70%),
-    var(--bg-page);
+  background: var(--bg-page);
 }
 
 .dashboard-page__inner {

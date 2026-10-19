@@ -8,7 +8,7 @@
   max-width: 1140px;
   margin: 0 auto;
   padding: 40px 24px 96px;
-  font-family: var(--font-body, 'Inter', sans-serif);
+  font-family: var(--font-body, 'Poppins', sans-serif);
   color: var(--text-primary, inherit);
   /* Ginawang transparent para sumunod sa global background ng app */
   background-color: transparent; 
@@ -26,22 +26,39 @@
   align-items: center;
   gap: 8px;
   align-self: flex-start;
-  padding: 6px 4px;
-  border: none;
-  background: none;
-  color: var(--text-secondary, rgba(128, 128, 128, 0.8));
-  font-family: var(--font-body, 'Inter', sans-serif);
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  font-family: var(--font-body, 'Poppins', sans-serif);
   font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: color 150ms ease;
+  transition:
+    transform 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .cart-back-btn:hover,
 .cart-back-btn:focus-visible {
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--accent-primary) 9%, var(--bg-surface));
   color: var(--accent-color, #d4a373);
+  box-shadow: var(--shadow-sm);
+}
+
+.cart-back-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .cart-back-btn svg {
+  flex: 0 0 auto;
   transition: transform 150ms ease;
 }
 
@@ -49,8 +66,14 @@
   transform: translateX(-3px);
 }
 
+.cart-back-btn:active { transform: scale(0.95); }
+
+@media (min-width: 64rem) {
+  .cart-back-btn { display: none; }
+}
+
 .cart-page__title {
-  font-family: var(--font-heading, 'Playfair Display', serif);
+  font-family: var(--font-heading, var(--font-display));
   font-weight: 600;
   font-size: clamp(1.6rem, 2.4vw, 2.1rem);
   margin: 0;
@@ -58,7 +81,7 @@
 }
 
 .cart-page__count {
-  font-family: var(--font-body, 'Inter', sans-serif);
+  font-family: var(--font-body, 'Poppins', sans-serif);
   font-weight: 400;
   font-size: 0.6em;
   color: var(--text-secondary, rgba(128, 128, 128, 0.8));
@@ -191,7 +214,7 @@
   background: none;
   color: var(--text-secondary, rgba(128, 128, 128, 0.8));
   font-size: 0.8rem;
-  font-family: var(--font-body, 'Inter', sans-serif);
+  font-family: var(--font-body, 'Poppins', sans-serif);
   cursor: pointer;
   padding: 2px;
   transition: color 150ms ease;
@@ -215,7 +238,7 @@
 
 .cart-summary__title {
   margin: 0 0 20px;
-  font-family: var(--font-heading, 'Playfair Display', serif);
+  font-family: var(--font-heading, var(--font-display));
   font-size: 1.15rem;
   font-weight: 600;
 }
@@ -255,7 +278,7 @@
   padding: 13px 28px;
   border: none;
   border-radius: 6px;
-  font-family: var(--font-body, 'Inter', sans-serif);
+  font-family: var(--font-body, 'Poppins', sans-serif);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -297,7 +320,7 @@
 }
 
 .cart-empty__title {
-  font-family: var(--font-heading, 'Playfair Display', serif);
+  font-family: var(--font-heading, var(--font-display));
   font-size: 1.3rem;
   color: var(--text-primary, inherit);
   margin: 0 0 4px;

@@ -1,11 +1,11 @@
 .process-section {
   --process-amber-1: #d4af37;
   --process-amber-2: #ffab5e;
-  --process-glass-bg: color-mix(in srgb, var(--bg-secondary) 70%, transparent);
-  --process-glass-border: color-mix(in srgb, var(--border-color) 80%, var(--process-amber-1) 20%);
+  --process-glass-bg: color-mix(in srgb, var(--bg-surface) 70%, transparent);
+  --process-glass-border: color-mix(in srgb, var(--color-border) 80%, var(--process-amber-1) 20%);
 
   padding-block: clamp(3.5rem, 6vw, 6rem);
-  background: var(--bg-primary);
+  background: var(--bg-page);
 }
 
 .process-header {
@@ -35,7 +35,7 @@
   margin: 1rem 0 0.85rem;
   font-size: clamp(1.9rem, 3.4vw, 2.6rem);
   line-height: 1.15;
-  color: var(--text-primary);
+  color: var(--text-main);
 }
 
 .process-lead {
@@ -84,7 +84,7 @@
   border: 1px solid var(--process-glass-border);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--text-primary) 4%, transparent) inset;
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--text-main) 4%, transparent) inset;
   opacity: 0;
   transform: translateY(18px);
   transition: opacity 0.55s ease, transform 0.55s ease, border-color 0.25s ease, box-shadow 0.25s ease;
@@ -110,7 +110,7 @@
   border-radius: 50%;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--bg-primary);
+  color: var(--bg-page);
   background: linear-gradient(135deg, var(--process-amber-1), var(--process-amber-2));
   box-shadow: 0 0 16px -2px color-mix(in srgb, var(--process-amber-2) 65%, transparent);
 }
@@ -135,7 +135,7 @@
 .process-step__title {
   margin: 0.35rem 0 0;
   font-size: 1.08rem;
-  color: var(--text-primary);
+  color: var(--text-main);
 }
 
 .process-step__desc {
