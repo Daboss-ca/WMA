@@ -13,7 +13,7 @@ export function createAuthModal(): HTMLElement {
       <button type="button" class="modal-close-btn" id="modal-close-btn" aria-label="Close modal">&times;</button>
       
       <!-- Top Alert Badge Container -->
-      <div id="auth-alert" class="status-badge" style="display: none;"></div>
+      <div id="auth-alert" class="status-badge" role="alert" aria-live="assertive" style="display: none;"></div>
 
       <!-- Tab Navigation Switcher -->
       <div class="auth-tabs">

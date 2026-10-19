@@ -3,6 +3,8 @@ import { uiState } from '../../state/uiStateManager.js';
 import { buildApiUrl } from '../../config/api.js';
 import { firstValidationMessage, loginSchema } from '../../validation/schemas.js';
 
+const LOGIN_TIMEOUT_MS = 15_000;
+
 export function renderLoginForm(): string {
   return `
     <form id="login-form" novalidate>
@@ -60,11 +62,13 @@ export function attachLoginFormEvents(): void {
     // Set Loading state (spinner)
     uiState.setLoading('login-submit-btn', true, 'Sign In');
 
+    let loginController: AbortController | null = null;
+    let loginTimeoutId: number | undefined;
+
     try {
       if (isAdminCredentials) {
         setAdminSession();
 
-        uiState.setLoading('login-submit-btn', false, 'Sign In');
         uiState.showAlert({ type: 'success', text: 'Administrator sign-in successful. Redirecting...' });
 
         window.location.hash = '#/admin/overview';
@@ -75,19 +79,47 @@ export function attachLoginFormEvents(): void {
         return;
       }
 
+      if (!navigator.onLine) {
+        uiState.showAlert({
+          type: 'error',
+          text: 'No internet connection. Please check your network and try again.',
+        });
+        return;
+      }
+
+      const controller = new AbortController();
+      loginController = controller;
+      loginTimeoutId = window.setTimeout(() => controller.abort(), LOGIN_TIMEOUT_MS);
+
       const response = await fetch(buildApiUrl('/auth/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ username: usernameVal, password: passVal }),
+        signal: controller.signal,
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        uiState.setLoading('login-submit-btn', false, 'Sign In');
-        uiState.showAlert({ type: 'error', text: data.error || 'Invalid username or password.' });
+        const errorCode = String(data.code ?? '').toLowerCase();
+        const isCredentialFailure = response.status === 401 &&
+          ['invalid_credentials', 'invalid_grant', 'invalid_login_credentials', 'incorrect_credentials'].includes(errorCode);
+        const serverError = typeof data.error === 'string' ? data.error : '';
+        const containsCredentialFailure = /invalid (?:login )?credentials|invalid username or password|incorrect (?:username|password|credentials)/i.test(serverError);
+        let message: string;
+        if (!navigator.onLine) {
+          message = 'No internet connection. Please check your network and try again.';
+        } else if (isCredentialFailure) {
+          message = serverError || 'Invalid username or password.';
+        } else if (serverError && !containsCredentialFailure) {
+          message = serverError;
+        } else {
+          message = 'Sign-in is temporarily unavailable. Please try again.';
+        }
+
+        uiState.showAlert({ type: 'error', text: message });
         return;
       }
 
@@ -95,7 +127,6 @@ export function attachLoginFormEvents(): void {
       const rememberMe = rememberCheckbox ? rememberCheckbox.checked : false;
       setCurrentUser(data.user, rememberMe);
 
-      uiState.setLoading('login-submit-btn', false, 'Sign In');
       uiState.showAlert({ type: 'success', text: 'Welcome back. Signing you in...' });
 
       setTimeout(() => {
@@ -103,8 +134,22 @@ export function attachLoginFormEvents(): void {
       }, 1000);
       
     } catch (error) {
+      const wasAborted = loginController?.signal.aborted || (error instanceof Error && error.name === 'AbortError');
+      let message: string;
+      if (!navigator.onLine) {
+        message = 'No internet connection. Please check your network and try again.';
+      } else if (wasAborted) {
+        message = 'Connection timed out. Please check your internet connection and try again.';
+      } else if (error instanceof TypeError) {
+        message = 'Connection problem. Please check your internet connection and try again.';
+      } else {
+        message = 'We could not complete sign in because of a server issue. Please try again.';
+      }
+
+      uiState.showAlert({ type: 'error', text: message });
+    } finally {
+      if (loginTimeoutId !== undefined) window.clearTimeout(loginTimeoutId);
       uiState.setLoading('login-submit-btn', false, 'Sign In');
-      uiState.showAlert({ type: 'error', text: 'We could not reach the server. Check your connection and try again.' });
     }
   });
 }

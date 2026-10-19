@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AuthService } from '../services/auth.service.js';
+import { AuthService, AuthServiceError } from '../services/auth.service.js';
 import { firstValidationMessage, loginSchema, registerSchema } from '../validation/schemas.js';
 
 export class AuthController {
@@ -60,9 +60,15 @@ export class AuthController {
         user: userObj,
         session: result.session,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Sign-in error:', error);
-      return res.status(400).json({ error: 'Invalid username or password.' });
+      if (error instanceof AuthServiceError) {
+        return res.status(error.status).json({ code: error.code, error: error.message });
+      }
+      return res.status(503).json({
+        code: 'auth_service_unavailable',
+        error: 'Sign-in service is temporarily unavailable. Please try again.',
+      });
     }
   }
 }
