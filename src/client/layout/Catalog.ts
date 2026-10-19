@@ -15,6 +15,7 @@ import {
   disposeWmaGroup,
   type AssemblyPart,
   type WmaMaterials,
+  WMA_WOOD_FINISHES,
 } from "../components/catalog/WmaFurniture.js";
 
 export interface HeroContent {
@@ -758,6 +759,8 @@ function createAssemblyScene(
   let currentCategory = "Kiosks";
   let isTransitioning = false;
   let pendingCategory: string | null = null;
+  let destroyed = false;
+  const transitionTimelines = new Set<gsap.core.Timeline>();
 
   const cycleCategories = [
     "Kiosks",
@@ -766,6 +769,82 @@ function createAssemblyScene(
   ];
 
   let cycleIndex = 0;
+  let woodFinishIndex = 0;
+  let autoCycleInterval: number | null = null;
+  let interactionResumeTimeout: number | null = null;
+  let isHovering = false;
+
+  function applyWoodFinish(index: number): void {
+    const finish = WMA_WOOD_FINISHES[index];
+    const color = new THREE.Color(finish.color);
+
+    gsap.to(materials.body.color, {
+      r: color.r,
+      g: color.g,
+      b: color.b,
+      duration: 1.4,
+      ease: "sine.inOut",
+      overwrite: true,
+    });
+    gsap.to(materials.body, {
+      roughness: finish.roughness,
+      clearcoatRoughness: finish.clearcoatRoughness,
+      duration: 1.4,
+      ease: "sine.inOut",
+      overwrite: true,
+    });
+  }
+
+  function cycleShowcase(): void {
+    if (destroyed) return;
+
+    cycleIndex = (cycleIndex + 1) % cycleCategories.length;
+    woodFinishIndex = (woodFinishIndex + 1) % WMA_WOOD_FINISHES.length;
+    applyWoodFinish(woodFinishIndex);
+    transitionToCategory(cycleCategories[cycleIndex]);
+  }
+
+  function pauseAutoCycle(): void {
+    if (autoCycleInterval !== null) {
+      window.clearInterval(autoCycleInterval);
+      autoCycleInterval = null;
+    }
+    if (interactionResumeTimeout !== null) {
+      window.clearTimeout(interactionResumeTimeout);
+      interactionResumeTimeout = null;
+    }
+  }
+
+  function scheduleAutoCycleResume(delay = 1800): void {
+    if (interactionResumeTimeout !== null) {
+      window.clearTimeout(interactionResumeTimeout);
+    }
+
+    interactionResumeTimeout = window.setTimeout(() => {
+      interactionResumeTimeout = null;
+      if (destroyed || isHovering) return;
+      autoCycleInterval = window.setInterval(cycleShowcase, 5000);
+    }, delay);
+  }
+
+  function onPointerEnter(event: PointerEvent): void {
+    if (event.pointerType === "touch") return;
+    isHovering = true;
+    pauseAutoCycle();
+  }
+
+  function onPointerLeave(event: PointerEvent): void {
+    if (event.pointerType === "touch") return;
+    isHovering = false;
+    scheduleAutoCycleResume();
+  }
+
+  function onPointerDown(event: PointerEvent): void {
+    pauseAutoCycle();
+    if (event.pointerType === "touch") {
+      scheduleAutoCycleResume(7000);
+    }
+  }
 
   function transitionToCategory(category: string): void {
     if (
@@ -788,8 +867,12 @@ function createAssemblyScene(
     const meshesToDisassemble =
       oldGroup.children as AssemblyPart[];
 
-    const explodeTl = gsap.timeline({
+    let explodeTl: gsap.core.Timeline;
+    explodeTl = gsap.timeline({
       onComplete: () => {
+        transitionTimelines.delete(explodeTl);
+        if (destroyed) return;
+
         furnitureGroup.remove(oldGroup);
         disposeWmaGroup(oldGroup);
 
@@ -813,8 +896,12 @@ function createAssemblyScene(
         furnitureGroup.add(newGroup);
         activeGroup = newGroup;
 
-        const buildTl = gsap.timeline({
+        let buildTl: gsap.core.Timeline;
+        buildTl = gsap.timeline({
           onComplete: () => {
+            transitionTimelines.delete(buildTl);
+            if (destroyed) return;
+
             isTransitioning = false;
 
             if (
@@ -829,6 +916,7 @@ function createAssemblyScene(
             }
           },
         });
+        transitionTimelines.add(buildTl);
 
         newGroup.children.forEach((mesh, idx) => {
           const m = mesh as AssemblyPart;
@@ -859,6 +947,7 @@ function createAssemblyScene(
         });
       },
     });
+    transitionTimelines.add(explodeTl);
 
     meshesToDisassemble.forEach((mesh, idx) => {
       explodeTl
@@ -932,6 +1021,10 @@ function createAssemblyScene(
       cycleIndex =
         (cycleIndex + 1) % cycleCategories.length;
 
+      woodFinishIndex =
+        (woodFinishIndex + 1) % WMA_WOOD_FINISHES.length;
+      applyWoodFinish(woodFinishIndex);
+
       transitionToCategory(
         cycleCategories[cycleIndex]
       );
@@ -947,6 +1040,23 @@ function createAssemblyScene(
     "click",
     onClick
   );
+
+  renderer.domElement.addEventListener(
+    "pointerenter",
+    onPointerEnter
+  );
+
+  renderer.domElement.addEventListener(
+    "pointerleave",
+    onPointerLeave
+  );
+
+  renderer.domElement.addEventListener(
+    "pointerdown",
+    onPointerDown
+  );
+
+  autoCycleInterval = window.setInterval(cycleShowcase, 5000);
 
   let animationFrameId = 0;
 
@@ -986,12 +1096,25 @@ function createAssemblyScene(
 
   window.addEventListener("resize", handleResize);
 
-  let destroyed = false;
-
   function destroy(): void {
     if (destroyed) return;
 
     destroyed = true;
+
+    if (autoCycleInterval !== null) {
+      window.clearInterval(autoCycleInterval);
+      autoCycleInterval = null;
+    }
+
+    if (interactionResumeTimeout !== null) {
+      window.clearTimeout(interactionResumeTimeout);
+      interactionResumeTimeout = null;
+    }
+
+    gsap.killTweensOf(materials.body.color);
+    gsap.killTweensOf(materials.body);
+    transitionTimelines.forEach((timeline) => timeline.kill());
+    transitionTimelines.clear();
 
     cancelAnimationFrame(animationFrameId);
 
@@ -1008,6 +1131,21 @@ function createAssemblyScene(
     renderer.domElement.removeEventListener(
       "click",
       onClick
+    );
+
+    renderer.domElement.removeEventListener(
+      "pointerenter",
+      onPointerEnter
+    );
+
+    renderer.domElement.removeEventListener(
+      "pointerleave",
+      onPointerLeave
+    );
+
+    renderer.domElement.removeEventListener(
+      "pointerdown",
+      onPointerDown
     );
 
     disposeWmaGroup(activeGroup);
