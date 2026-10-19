@@ -209,7 +209,7 @@ export function buildOrdersEndpoint(userId?: string | null): string {
 
 export function createOrdersPage(initialTab: OrderStatusTab = "all"): HTMLElement {
   const page = document.createElement("main");
-  page.className = "site-main orders-page";
+  page.className = "site-main orders-page w-full max-w-full overflow-x-hidden";
   page.id = "orders-page";
 
   const getActiveUser = (): { id: string } | null => {

@@ -37,8 +37,8 @@ export function openOrderDetailModal({ order, onChangeStatus }: OrderDetailOptio
 
       <section class="admin-detail__section">
         <h3 class="admin-section-title">Items</h3>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
+        <div class="w-full overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 rounded-xl border border-gray-200/20 shadow-sm admin-table-wrap">
+          <table class="w-full min-w-[600px] text-left border-collapse admin-table">
             <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Subtotal</th></tr></thead>
             <tbody>
               ${items

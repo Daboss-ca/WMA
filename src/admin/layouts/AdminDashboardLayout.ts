@@ -35,7 +35,7 @@ export function createAdminDashboardLayout({
   const collapsedAtStart = localStorage.getItem(SIDEBAR_KEY) === "1";
 
   const shell = fromHTML<HTMLElement>(`
-    <div class="admin-app admin-shell${collapsedAtStart ? " is-sidebar-collapsed" : ""}" data-theme="${preferredTheme}">
+    <div class="admin-app admin-shell w-full max-w-full overflow-x-hidden${collapsedAtStart ? " is-sidebar-collapsed" : ""}" data-theme="${preferredTheme}">
       <div class="admin-shell__overlay" data-overlay></div>
 
       <div class="admin-shell__main">
@@ -75,7 +75,7 @@ export function createAdminDashboardLayout({
           </div>
         </header>
 
-        <main class="admin-main">
+        <main class="admin-main w-full max-w-full overflow-x-hidden">
           <div class="admin-page-head">
             <div>
               <p class="admin-eyebrow">Admin console</p>

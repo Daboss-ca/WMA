@@ -11,8 +11,8 @@ export interface ProductTableOptions {
 
 export function createProductTable({ products, onEdit, onDelete }: ProductTableOptions): HTMLElement {
   const wrap = fromHTML<HTMLElement>(`
-    <div class="admin-table-wrap">
-      <table class="admin-table">
+    <div class="w-full overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 rounded-xl border border-gray-200/20 shadow-sm admin-table-wrap">
+      <table class="w-full min-w-[600px] text-left border-collapse admin-table">
         <thead>
           <tr>
             <th scope="col">Item</th>

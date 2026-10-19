@@ -123,7 +123,7 @@ function renderFilters(): string {
 export function createDashboardPage(): HTMLElement {
   const user = getCurrentUser();
   const page = document.createElement("main");
-  page.className = "site-main dashboard-page";
+  page.className = "site-main dashboard-page w-full max-w-full overflow-x-hidden";
   page.id = "dashboard";
 
   if (!user) return page;

@@ -32,7 +32,7 @@ if (currentDate.getMonth() < startDate.getMonth()) {
 
 export function createLandingPage(): HTMLElement {
   const main = document.createElement("main");
-  main.className = "site-main";
+  main.className = "site-main w-full max-w-full overflow-x-hidden";
 
   const heroConfig = {
     title: "YOU BRING THE PRODUCT, WE'LL BUILD THE KIOSK",

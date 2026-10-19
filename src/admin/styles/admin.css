@@ -38,6 +38,10 @@
   --adm-font: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
   background: radial-gradient(900px 500px at 85% -10%, rgba(200, 146, 90, 0.07), transparent 60%), var(--adm-bg);
   color: var(--adm-text);
   font-family: var(--adm-font);
@@ -99,6 +103,8 @@
 .admin-shell__main {
   flex: 1;
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   margin-left: var(--adm-sidebar);
@@ -450,6 +456,9 @@
 
 /* ---------- Main & page head ---------- */
 .admin-main {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: clamp(24px, 4vw, 52px);
   display: flex;
   flex-direction: column;
@@ -459,8 +468,17 @@
 .admin-products,
 .admin-orders {
   display: grid;
+  width: 100%;
+  max-width: 100%;
   gap: 22px;
   min-width: 0;
+}
+.admin-page-content > *,
+.admin-overview > *,
+.admin-products > *,
+.admin-orders > * {
+  min-width: 0;
+  max-width: 100%;
 }
 .admin-page-head {
   display: flex;
@@ -487,6 +505,9 @@
   color: var(--adm-text-secondary);
 }
 .admin-page-content {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -934,21 +955,26 @@
 
 /* ---------- Tables ---------- */
 .admin-table-wrap {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
   background: var(--adm-surface);
   border: 1px solid var(--adm-border);
   border-radius: var(--adm-radius);
   overflow-x: auto;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 1px 2px rgba(20, 18, 16, 0.06);
 }
 .admin-table {
   width: 100%;
-  min-width: 720px;
+  min-width: 600px;
+  max-width: none;
   border-collapse: collapse;
   font-size: 14px;
 }
-.admin-modal .admin-table {
-  min-width: 0;
-}
 .admin-table th {
+  position: relative;
   padding: 16px 20px;
   text-align: left;
   font-size: 12px;
@@ -963,6 +989,21 @@
   padding: 17px 20px;
   vertical-align: middle;
   border-bottom: 1px solid var(--adm-border);
+}
+.admin-table th:first-child,
+.admin-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--adm-surface);
+  box-shadow: 2px 0 5px -2px rgba(20, 18, 16, 0.22);
+}
+.admin-table th:first-child {
+  z-index: 3;
+  background: var(--adm-surface-2, var(--adm-surface));
+}
+.admin-table tbody tr:hover td:first-child {
+  background: var(--adm-surface);
 }
 .admin-table tbody tr {
   transition: background 0.2s;
@@ -1012,81 +1053,16 @@
 }
 
 @media (max-width: 720px) {
-  .admin-table {
-    min-width: 0;
+  /* Keep the full table layout and headers; the wrapper provides horizontal scrolling. */
+  .admin-table-wrap {
+    width: calc(100% + 32px);
+    max-width: calc(100% + 32px);
+    margin-inline: -16px;
+    padding-inline: 16px;
   }
-  .admin-table thead {
-    display: none;
-  }
-  .admin-table,
-  .admin-table tbody,
-  .admin-table tr,
+  .admin-table th,
   .admin-table td {
-    display: block;
-    width: 100%;
-  }
-  .admin-table tr {
-    padding: 12px;
-    border-bottom: 1px solid var(--adm-border);
-  }
-  .admin-table tr:last-child {
-    border-bottom: 0;
-  }
-  .admin-table td {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding: 6px 4px;
-    border: 0;
-    text-align: right;
-  }
-  .admin-table td::before {
-    content: attr(data-label);
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--adm-muted);
-    text-align: left;
-  }
-  .admin-table td[data-label="Item"],
-  .admin-table td[data-label="Order"] {
-    display: block;
-    text-align: left;
-  }
-  .admin-table td[data-label="Item"]::before,
-  .admin-table td[data-label="Order"]::before,
-  .admin-table__actions::before {
-    display: none;
-  }
-  .admin-table__actions {
-    justify-content: flex-end;
-  }
-
-  /* Keep item rows aligned with their order-level cells on narrow screens. */
-  .admin-table--orders {
-    min-width: 1100px;
-  }
-  .admin-table--orders thead {
-    display: table-header-group;
-  }
-  .admin-table--orders,
-  .admin-table--orders tbody {
-    display: table;
-    width: 100%;
-  }
-  .admin-table--orders tr {
-    display: table-row;
-    padding: 0;
-    border-bottom: 0;
-  }
-  .admin-table--orders th,
-  .admin-table--orders td {
-    display: table-cell;
-    width: auto;
-  }
-  .admin-table--orders td::before {
-    display: none;
+    padding: 12px 14px;
   }
 }
 
