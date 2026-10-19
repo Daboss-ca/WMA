@@ -32,11 +32,11 @@ if (currentDate.getMonth() < startDate.getMonth()) {
 
 export function createLandingPage(): HTMLElement {
   const main = document.createElement("main");
-  main.className = "site-main w-full max-w-full overflow-x-hidden";
+  main.className = "site-main landing-page w-full max-w-full overflow-x-hidden";
 
   const heroConfig = {
     title: "YOU BRING THE PRODUCT, WE'LL BUILD THE KIOSK",
-    lead: " WMA Wood Craft specializes in designing and building custom mall kiosks, pop-up carts, motor carts, and in-line store setups that help businesses stand out, attract more customers, and maximize their selling space. From customized designs, signage, restaurant fixtures, and 3D design services to marketing solutions, we provide creative and practical business solutions that turn your ideas into eye-catching spaces designed to support your business growth.",
+    lead: " We design and build custom mall kiosks, pop-up carts, and store setups from 3D concept to final build. Maximize your space, attract more customers, and grow your brand.",
     primaryCta: { label: "Start a project", href: "#inquiry" },
     stats: [
       { value: `${yearsOfExperience}yrs`, label: "in the workshop" },
@@ -72,7 +72,7 @@ export function createLandingPage(): HTMLElement {
         <h2 id="customer-reviews-title">Made for the way you work</h2>
         <p>customers review about the pieces we have built for them.</p>
       </header>
-      <div class="customer-reviews__content" aria-live="polite">
+      <div class="customer-reviews__content" role="region" aria-label="Customer reviews" tabindex="0" aria-live="polite">
         <p class="customer-reviews__message">Loading customer reviews...</p>
       </div>
     </div>`;
@@ -115,13 +115,13 @@ export function createLandingPage(): HTMLElement {
         content.innerHTML = `<p class="customer-reviews__message">No reviews available.</p>`;
         return;
       }
-      content.innerHTML = `<div class="customer-reviews__grid">${reviews.map((review) => {
+      content.innerHTML = `<div class="customer-reviews__grid flex overflow-x-auto space-x-4 pb-4 snap-x snap-mandatory">${reviews.map((review) => {
         const rating = Math.max(1, Math.min(5, Math.round(Number(review.rating) || 0)));
         const productTitle = review.product?.title || "WMA Wood Craft product";
         const date = new Date(review.created_at);
         const dateLabel = Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("en", { month: "short", year: "numeric" });
         return `
-          <article class="testimonial-card">
+          <article class="testimonial-card min-w-[280px] sm:min-w-[320px] flex-shrink-0 snap-start">
             <div class="testimonial-card__rating" aria-label="Rated ${rating} out of 5 stars">${"★".repeat(rating)}${"☆".repeat(5 - rating)}</div>
             <blockquote>“${escapeReviewText(review.comment)}”</blockquote>
             <div class="testimonial-card__footer">

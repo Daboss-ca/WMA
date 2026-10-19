@@ -73,7 +73,7 @@
 }
 
 .hero__title {
-  font-size: var(--fs-800);
+  font-size: clamp(var(--fs-700), 5.4vw, var(--fs-800));
   color: var(--text-main);
   max-width: 14ch;
   margin-bottom: var(--space-5);
@@ -189,7 +189,31 @@
 @media (max-width: 900px) {
   .hero__grid { grid-template-columns: 1fr; }
   .hero__swatch { order: -1; aspect-ratio: 16 / 10; }
-  .hero__title { max-width: none; font-size: var(--fs-700); }
+  .hero__title { max-width: none; font-size: clamp(1.9rem, 6.2vw, 3rem); }
+}
+
+@media (max-width: 720px) {
+  .landing-page .hero.wrap,
+  .landing-page #catalog.wrap {
+    padding-inline: clamp(1rem, 4vw, 1.5rem);
+  }
+  .landing-page .hero {
+    padding-block: clamp(3.5rem, 13vw, 5.5rem) var(--space-7);
+  }
+  .landing-page .hero__title {
+    line-height: 1.08;
+    overflow-wrap: anywhere;
+  }
+  .landing-page .hero__lead,
+  .landing-page #catalog .section__subtitle {
+    font-size: clamp(0.95rem, 3.8vw, 1.125rem);
+  }
+  .landing-page #hero-3d-container {
+    min-height: clamp(220px, 60vw, 360px) !important;
+  }
+  .landing-page #catalog .section__title {
+    font-size: clamp(1.4rem, 5.5vw, 1.75rem);
+  }
 }
 
 /* ---------- Section headings ---------- */

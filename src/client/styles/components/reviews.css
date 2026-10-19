@@ -10,8 +10,34 @@
 .customer-reviews__header h2 { margin: 0; font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 3rem); }
 .customer-reviews__header > p:last-child { margin: .75rem 0 0; color: var(--text-muted, #d4a373); }
 .customer-reviews__message { margin: 0; color: var(--text-muted, #d4a373); text-align: center; }
-.customer-reviews__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1rem; }
-.testimonial-card { display: flex; min-height: 14rem; flex-direction: column; padding: 1.4rem; border: 1px solid var(--color-border, rgba(212, 163, 115, .22)); border-radius: 1rem; background: var(--bg-page, #1b140f); }
+.customer-reviews__grid {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  overflow-x: auto;
+  padding: 0.25rem 0.5rem 1rem;
+  scroll-padding-inline: 0.5rem;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-primary, #d4a373) color-mix(in srgb, var(--bg-page, #1b140f) 78%, white 22%);
+}
+.customer-reviews__grid::-webkit-scrollbar { height: 6px; }
+.customer-reviews__grid::-webkit-scrollbar-track { border-radius: 999px; background: color-mix(in srgb, var(--bg-page, #1b140f) 78%, white 22%); }
+.customer-reviews__grid::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--accent-primary, #d4a373); }
+.testimonial-card {
+  display: flex;
+  flex: 0 0 280px;
+  min-width: 280px;
+  min-height: 14rem;
+  flex-direction: column;
+  scroll-snap-align: start;
+  padding: 1.4rem;
+  border: 1px solid var(--color-border, rgba(212, 163, 115, .22));
+  border-radius: 1rem;
+  background: var(--bg-page, #1b140f);
+}
 .testimonial-card__rating { color: var(--accent-primary, #d4a373); font-size: 1.15rem; letter-spacing: .12em; }
 .testimonial-card blockquote { flex: 1; margin: 1rem 0 1.5rem; color: var(--text-main, #f4ece1); line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
 .testimonial-card__footer { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: .8rem; padding-top: 1rem; border-top: 1px solid var(--color-border, rgba(212, 163, 115, .22)); }
@@ -45,4 +71,11 @@
   .testimonial-card__footer { align-items: start; flex-direction: column; }
   .testimonial-card__product { max-width: none; text-align: left; }
   .review-form__submit { width: 100%; }
+}
+
+@media (min-width: 640px) {
+  .testimonial-card {
+    flex-basis: 320px;
+    min-width: 320px;
+  }
 }

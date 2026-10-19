@@ -49,6 +49,78 @@
   gap: var(--space-6);
 }
 
+.landing-page #catalog .catalog-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.landing-page #catalog .catalog-grid > .card {
+  min-width: 0;
+}
+
+.landing-page #catalog .card__description {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+@media (max-width: 720px) {
+  .landing-page #catalog .catalog-grid {
+    gap: var(--space-2);
+  }
+}
+
+@media (max-width: 480px) {
+  .landing-page #catalog .card__body {
+    gap: var(--space-1);
+    padding: var(--space-2);
+  }
+  .landing-page #catalog .card__title {
+    font-size: clamp(0.7rem, 3.4vw, 0.9rem);
+    overflow-wrap: anywhere;
+  }
+  .landing-page #catalog .card__media-placeholder {
+    padding: 4px;
+    font-size: clamp(0.7rem, 3.2vw, 0.9rem);
+    overflow-wrap: anywhere;
+  }
+  .landing-page #catalog .card__price {
+    margin-top: 0;
+    font-size: clamp(0.65rem, 3.1vw, 0.8rem);
+  }
+  .landing-page #catalog .card__description {
+    font-size: 0.65rem;
+  }
+  .landing-page #catalog .card__meta {
+    gap: var(--space-1);
+    margin-top: var(--space-1);
+  }
+  .landing-page #catalog .badge--dimension {
+    padding: 2px 4px;
+    font-size: 0.55rem;
+    overflow-wrap: anywhere;
+  }
+  .landing-page #catalog .card__category {
+    top: var(--space-1);
+    left: var(--space-1);
+    max-width: calc(100% - var(--space-2));
+    padding: 2px 4px;
+    font-size: 0.55rem;
+    overflow-wrap: anywhere;
+  }
+  .landing-page #catalog .card__actions {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-1) !important;
+    padding: 0 var(--space-2) var(--space-2);
+  }
+  .landing-page #catalog .card__actions .btn {
+    min-width: 0;
+    padding: 6px 3px;
+    font-size: 0.6rem;
+  }
+}
+
 /* ---------- Furniture card ---------- */
 .card {
   --card-notch: var(--notch-size);

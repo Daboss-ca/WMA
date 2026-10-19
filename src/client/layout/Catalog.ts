@@ -148,7 +148,7 @@ function renderHero(hero: HeroContent): string {
   const stats = hero.stats ?? [];
 
   return `
-    <section class="hero wrap">
+    <section class="hero wrap px-4 sm:px-6">
       <div class="hero__grid">
         <div class="hero__content">
           ${
@@ -1026,12 +1026,6 @@ function createAssemblyScene(
   return { destroy };
 }
 
-/**
- * Landing-page catalog.
- *
- * Uses the same View more / Show less helpers as the dashboard.
- * Filtering and pagination are independent of authentication state.
- */
 export function createCatalog(
   props: CatalogProps
 ): HTMLElement {
@@ -1063,19 +1057,18 @@ export function createCatalog(
 
     <div class="grain-seam" role="presentation"></div>
 
-    <section class="section wrap" id="catalog">
+    <section class="section wrap px-4 sm:px-6" id="catalog">
       <div class="section__head">
         <div>
           <h2 class="section__title">WMA Collection</h2>
           <p class="section__subtitle">
-            Explore WMA Wood Craft’s collection of custom mall kiosks, pop-up carts, motor carts, in-line stores, signage, and restaurant setups—designed to showcase your brand, attract customers, and bring your business vision to life.
-          </p>
+            Discover custom mall kiosks, pop-up carts, motor carts, in-line stores, and restaurant setups built to showcase your brand, attract customers, and bring your vision to life.
         </div>
       </div>
 
       ${renderFilterBar(filters)}
 
-      <div class="catalog-grid">
+      <div class="catalog-grid grid grid-cols-3">
         ${shuffledItems.map(renderCard).join("")}
       </div>
 
