@@ -29,6 +29,14 @@
   gap: var(--space-5);
 }
 
+.site-header__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  min-width: 0;
+  margin-left: auto;
+}
+
 /* ---------- Brand mark ---------- */
 .brand {
   display: inline-flex;
@@ -131,12 +139,13 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex: 0 0 auto;
 }
 
 .header-authenticated-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .header-action-button,
@@ -314,12 +323,20 @@
 
 @media (max-width: 860px) {
   .nav-toggle { display: flex; }
+  .site-header__inner {
+    gap: var(--space-3);
+    padding-inline: clamp(0.75rem, 4vw, 1.25rem);
+  }
+  .brand { gap: var(--space-2); }
+  .brand__wordmark { font-size: var(--fs-300); }
+  .site-header__controls { gap: var(--space-2); }
   .site-nav {
     position: fixed;
     inset: 0 0 auto auto;
     top: var(--space-8);
     right: var(--space-4);
     left: var(--space-4);
+    z-index: calc(var(--z-header) + 1);
     flex-direction: column;
     align-items: stretch;
     background: var(--bg-surface);
@@ -340,7 +357,14 @@
     transition: transform var(--duration-base) var(--ease-out-soft), opacity var(--duration-base), visibility 0s;
   }
   .site-nav__list { flex-direction: column; align-items: flex-start; gap: var(--space-4); width: 100%; }
-  .site-nav .btn { width: 100%; justify-content: center; margin-top: var(--space-2); }
-  .site-nav__actions { justify-content: flex-end; width: 100%; }
-  .profile-menu__name { max-width: none; }
+  .site-nav__actions { justify-content: flex-end; }
+  .header-authenticated-actions { gap: var(--space-1); }
+  .header-action-button { width: 34px; height: 34px; }
+  .profile-menu__trigger { gap: 0; padding: 2px 4px; }
+  .profile-menu__name,
+  .profile-menu__chevron { display: none; }
+}
+
+@media (min-width: 861px) {
+  .header-authenticated-actions { gap: var(--space-4); }
 }

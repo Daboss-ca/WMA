@@ -28,6 +28,10 @@ function isAdminRoute(): boolean {
 function renderApp() {
   if (!app) return;
 
+  app.querySelectorAll<HTMLElement>(".site-header").forEach((header) => {
+    (header as HTMLElement & { destroy?: () => void }).destroy?.();
+  });
+
   app.querySelectorAll<HTMLElement>(".site-main").forEach((page) => {
     (page as HTMLElement & { destroy?: () => void }).destroy?.();
   });

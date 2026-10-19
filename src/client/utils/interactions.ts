@@ -17,13 +17,38 @@ export function initMobileNavToggle(
   header: HTMLElement,
   toggleButton: HTMLElement
 ): () => void {
+  const nav = header.querySelector<HTMLElement>(".site-nav");
+
+  const closeMenu = (): void => {
+    header.classList.remove("site-header--menu-open");
+    toggleButton.setAttribute("aria-expanded", "false");
+    document.removeEventListener("pointerdown", onOutsidePointerDown);
+  };
+
+  const onOutsidePointerDown = (event: PointerEvent): void => {
+    const target = event.target;
+    if (!(target instanceof Node)) return;
+    if (nav?.contains(target) || toggleButton.contains(target)) return;
+    closeMenu();
+  };
+
   const onClick = () => {
-    const isOpen = header.classList.toggle("site-header--menu-open");
-    toggleButton.setAttribute("aria-expanded", String(isOpen));
+    const isOpen = header.classList.contains("site-header--menu-open");
+    if (isOpen) {
+      closeMenu();
+      return;
+    }
+
+    header.classList.add("site-header--menu-open");
+    toggleButton.setAttribute("aria-expanded", "true");
+    document.addEventListener("pointerdown", onOutsidePointerDown);
   };
 
   toggleButton.addEventListener("click", onClick);
-  return () => toggleButton.removeEventListener("click", onClick);
+  return () => {
+    closeMenu();
+    toggleButton.removeEventListener("click", onClick);
+  };
 }
 
 export function initThemeToggle(button: HTMLElement): () => void {

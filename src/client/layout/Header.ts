@@ -48,43 +48,47 @@ export function createHeader(props: HeaderProps): HTMLElement {
         <span class="brand__wordmark">WMA <strong>Wood Craft</strong></span>
       </a>
 
-      <button
-        type="button"
-        class="nav-toggle"
-        aria-label="Toggle navigation menu"
-        aria-expanded="false"
-        aria-controls="primary-navigation"
-      >
-        <span class="nav-toggle__bar"></span>
-        <span class="nav-toggle__bar"></span>
-        <span class="nav-toggle__bar"></span>
-      </button>
+      <div class="site-header__controls">
+        <button
+          type="button"
+          class="nav-toggle"
+          aria-label="Toggle navigation menu"
+          aria-expanded="false"
+          aria-controls="primary-navigation"
+        >
+          <span class="nav-toggle__bar"></span>
+          <span class="nav-toggle__bar"></span>
+          <span class="nav-toggle__bar"></span>
+        </button>
 
-      <nav class="site-nav" id="primary-navigation" aria-label="Primary">
-        <ul class="site-nav__list">
-          ${navLinks
-            .map(
-              (link) => `
-            <li>
-              <a
-                class="site-nav__link"
-                href="${link.href}"
-                ${link.current ? 'aria-current="page"' : ""}
-              >${link.label}</a>
-            </li>`
-            )
-            .join("")}
-        </ul>
+        <nav class="site-nav" id="primary-navigation" aria-label="Primary">
+          <ul class="site-nav__list">
+            ${navLinks
+              .map(
+                (link) => `
+              <li>
+                <a
+                  class="site-nav__link"
+                  href="${link.href}"
+                  ${link.current ? 'aria-current="page"' : ""}
+                >${link.label}</a>
+              </li>`
+              )
+              .join("")}
+          </ul>
+        </nav>
+
         <div class="site-nav__actions" id="header-actions">
           <div id="auth-actions-container"></div>
         </div>
-      </nav>
+      </div>
     </div>
   `;
 
   const toggleButton = header.querySelector<HTMLElement>(".nav-toggle");
+  let destroyMobileNavToggle: (() => void) | undefined;
   if (toggleButton) {
-    initMobileNavToggle(header, toggleButton);
+    destroyMobileNavToggle = initMobileNavToggle(header, toggleButton);
   }
 
   initHeaderScrollEffect(header);
@@ -112,6 +116,7 @@ export function createHeader(props: HeaderProps): HTMLElement {
     if (!navLink || !sectionId || !sectionIds.has(sectionId) || !section) return;
 
     event.preventDefault();
+    if (header.classList.contains("site-header--menu-open")) toggleButton?.click();
     uiState.closeProfile();
 
     // Close temporary Cart/Orders pages before navigating to a site section.
@@ -129,6 +134,10 @@ export function createHeader(props: HeaderProps): HTMLElement {
       targetSection?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
+
+  (header as HTMLElement & { destroy?: () => void }).destroy = () => {
+    destroyMobileNavToggle?.();
+  };
 
   requestAnimationFrame(() => {
     const initialSectionId = sectionIds.has(window.location.hash.slice(1))
@@ -225,7 +234,7 @@ export function updateHeaderUI(): void {
       .toUpperCase();
 
     authContainer.innerHTML = `
-      <div class="header-authenticated-actions">
+        <div class="header-authenticated-actions flex items-center space-x-3 md:space-x-4">
         <button type="button" id="header-cart-btn" class="header-action-button" aria-label="View cart" title="Cart">
           <svg class="header-action-button__icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <circle cx="8" cy="21" r="1"></circle>
