@@ -98,7 +98,6 @@ export class AuthService {
       .eq('username', username)
       .single();
 
-<<<<<<< Updated upstream
     if (profileError?.code === 'PGRST116' || (!profileError && !profileData)) {
       throw new AuthServiceError('Invalid username or password.', 'invalid_credentials', 401);
     }
@@ -108,10 +107,6 @@ export class AuthService {
         'auth_service_unavailable',
         503
       );
-=======
-    if (profileError || !profileData) {
-      throw new Error('User not found.');
->>>>>>> Stashed changes
     }
 
     const email = profileData.email;
